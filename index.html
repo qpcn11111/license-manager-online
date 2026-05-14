@@ -383,16 +383,12 @@ function getOnlineConfig(){
   let cfg = raw ? JSON.parse(raw) : {};
 
   const hardcodedBinId =
-    (typeof HARDCODED_JSONBIN_BIN_ID !== "undefined" &&
-     HARDCODED_JSONBIN_BIN_ID &&
-     HARDCODED_JSONBIN_BIN_ID !== "6a059441adc21f119a9b1752")
+    typeof HARDCODED_JSONBIN_BIN_ID !== "undefined"
       ? HARDCODED_JSONBIN_BIN_ID
       : "";
 
   const hardcodedAccessKey =
-    (typeof HARDCODED_JSONBIN_ACCESS_KEY !== "undefined" &&
-     HARDCODED_JSONBIN_ACCESS_KEY &&
-     HARDCODED_JSONBIN_ACCESS_KEY !== "$2a$10$CbD9sDK0lXuZnVoMtHw21.dtPrQyyuShjGZd9CVFJL1kxv8EXJxJe")
+    typeof HARDCODED_JSONBIN_ACCESS_KEY !== "undefined"
       ? HARDCODED_JSONBIN_ACCESS_KEY
       : "";
 
