@@ -300,6 +300,14 @@ handleSpAction();
 // ===== Admin Login + JSONBin Online + User Realtime Confirm =====
 const SIMPLE_ADMIN_SESSION_KEY = "vib_simple_admin_session_v1";
 const SIMPLE_ADMIN_PASSWORD_KEY = "vib_simple_admin_password_v1";
+
+// HARDCODED ONLINE CONFIG
+const HARDCODED_JSONBIN = {
+  binId: "6a059441adc21f119a9b1752",
+  accessKey: "$2a$10$CbD9sDK0lXuZnVoMtHw21.dtPrQyyuShjGZd9CVFJL1kxv8EXJxJe
+"
+};
+
 const JSONBIN_CONFIG_KEY = "vib_jsonbin_config_v2";
 let autoRefreshTimer = null;
 let autoRefreshEnabled = true;
@@ -370,14 +378,17 @@ function guardAdminFunction(name){
   "resetDemo","exportJson","exportQueueCsv","saveSharePointConfig"
 ].forEach(guardAdminFunction);
 
+
 function getOnlineConfig(){
   let raw = localStorage.getItem(JSONBIN_CONFIG_KEY);
   let cfg = raw ? JSON.parse(raw) : {};
+
   return {
-    binId: cfg.binId || "",
-    accessKey: cfg.accessKey || ""
+    binId: cfg.binId || HARDCODED_JSONBIN.binId || "",
+    accessKey: cfg.accessKey || HARDCODED_JSONBIN.accessKey || ""
   };
 }
+
 
 function configureOnlineData(){
   const current = getOnlineConfig();
