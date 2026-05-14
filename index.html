@@ -301,12 +301,11 @@ handleSpAction();
 const SIMPLE_ADMIN_SESSION_KEY = "vib_simple_admin_session_v1";
 const SIMPLE_ADMIN_PASSWORD_KEY = "vib_simple_admin_password_v1";
 
-// HARDCODED ONLINE CONFIG
-const HARDCODED_JSONBIN = {
-  binId: "6a059441adc21f119a9b1752",
-  accessKey: "$2a$10$CbD9sDK0lXuZnVoMtHw21.dtPrQyyuShjGZd9CVFJL1kxv8EXJxJe
-"
-};
+// ===== Hardcoded JSONBin config =====
+// Thay 2 giá trị bên dưới bằng Bin ID và Access Key thật.
+// Sau khi thay xong, mọi máy mở GitHub Pages sẽ tự kết nối JSONBin.
+const HARDCODED_JSONBIN_BIN_ID = "6a059441adc21f119a9b1752";
+const HARDCODED_JSONBIN_ACCESS_KEY = "$2a$10$CbD9sDK0lXuZnVoMtHw21.dtPrQyyuShjGZd9CVFJL1kxv8EXJxJe";
 
 const JSONBIN_CONFIG_KEY = "vib_jsonbin_config_v2";
 let autoRefreshTimer = null;
@@ -383,9 +382,23 @@ function getOnlineConfig(){
   let raw = localStorage.getItem(JSONBIN_CONFIG_KEY);
   let cfg = raw ? JSON.parse(raw) : {};
 
+  const hardcodedBinId =
+    (typeof HARDCODED_JSONBIN_BIN_ID !== "undefined" &&
+     HARDCODED_JSONBIN_BIN_ID &&
+     HARDCODED_JSONBIN_BIN_ID !== "6a059441adc21f119a9b1752")
+      ? HARDCODED_JSONBIN_BIN_ID
+      : "";
+
+  const hardcodedAccessKey =
+    (typeof HARDCODED_JSONBIN_ACCESS_KEY !== "undefined" &&
+     HARDCODED_JSONBIN_ACCESS_KEY &&
+     HARDCODED_JSONBIN_ACCESS_KEY !== "$2a$10$CbD9sDK0lXuZnVoMtHw21.dtPrQyyuShjGZd9CVFJL1kxv8EXJxJe")
+      ? HARDCODED_JSONBIN_ACCESS_KEY
+      : "";
+
   return {
-    binId: cfg.binId || HARDCODED_JSONBIN.binId || "",
-    accessKey: cfg.accessKey || HARDCODED_JSONBIN.accessKey || ""
+    binId: cfg.binId || hardcodedBinId || "",
+    accessKey: cfg.accessKey || hardcodedAccessKey || ""
   };
 }
 
@@ -681,5 +694,16 @@ setTimeout(function(){
     }
   });
 }, 200);
+
+
+// AUTO_LOAD_HARDCODED_JSONBIN
+setTimeout(function(){
+  try{
+    const cfg = typeof getOnlineConfig === "function" ? getOnlineConfig() : null;
+    if(cfg && cfg.binId && cfg.accessKey && typeof loadOnlineData === "function"){
+      loadOnlineData(true);
+    }
+  }catch(e){ console.error(e); }
+}, 800);
 
 </script></body></html>
