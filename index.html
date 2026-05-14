@@ -704,22 +704,46 @@ setTimeout(function(){
 
 
 
-// ===== Auto Save Online after local changes =====
+
+
+// ===== Stable Auto Save Online after local changes =====
+// Fix: khi vừa thêm/sửa/xóa, không cho auto-refresh load dữ liệu cũ đè lên thay đổi local.
 let autoSaveOnlineTimer = null;
 let autoSaveOnlineBusy = false;
+let localDirtyUntil = 0;
+let applyingOnlinePayload = false;
+
+function markLocalDirty(){
+  localDirtyUntil = Date.now() + 5000;
+  if(typeof autoRefreshEnabled !== "undefined") autoRefreshEnabled = false;
+}
+
+function clearLocalDirtySoon(){
+  localDirtyUntil = Date.now() + 1200;
+  setTimeout(function(){
+    if(Date.now() >= localDirtyUntil && typeof autoRefreshEnabled !== "undefined"){
+      autoRefreshEnabled = true;
+    }
+  }, 1300);
+}
 
 async function autoSaveOnlineData(reason){
   try{
-    if(!isAdmin || !isAdmin()) return;
+    if(typeof isAdmin === "function" && !isAdmin()) return;
     if(typeof jsonBinConfig !== "function" || !jsonBinConfig(false)) return;
     if(typeof isOnlineLoading !== "undefined" && isOnlineLoading) return;
     if(autoSaveOnlineBusy) return;
 
     autoSaveOnlineBusy = true;
+    markLocalDirty();
+
     await putOnlineRecord(currentOnlinePayload(), false);
+
+    clearLocalDirtySoon();
     if(typeof toast === "function") toast("Auto saved online");
   }catch(e){
     console.error(e);
+    clearLocalDirtySoon();
     if(typeof toast === "function") toast("Auto save online failed");
   }finally{
     autoSaveOnlineBusy = false;
@@ -727,33 +751,74 @@ async function autoSaveOnlineData(reason){
 }
 
 function scheduleAutoSaveOnline(reason){
-  if(typeof autoRefreshEnabled !== "undefined") autoRefreshEnabled = false;
-  if(autoSaveOnlineTimer) clearTimeout(autoSaveOnlineTimer);
+  if(applyingOnlinePayload) return;
+  markLocalDirty();
 
-  autoSaveOnlineTimer = setTimeout(async function(){
-    await autoSaveOnlineData(reason);
-    if(typeof autoRefreshEnabled !== "undefined") autoRefreshEnabled = true;
-  }, 800);
+  if(autoSaveOnlineTimer) clearTimeout(autoSaveOnlineTimer);
+  autoSaveOnlineTimer = setTimeout(function(){
+    autoSaveOnlineData(reason);
+  }, 500);
 }
 
-if(typeof saveState === "function" && !saveState.__autoOnlineWrapped){
+// Wrap saveState: mọi thay đổi local như thêm/sửa/xóa tool, user đều tự save online.
+if(typeof saveState === "function" && !saveState.__stableAutoOnlineWrapped){
   const originalSaveStateLocalOnly = saveState;
   saveState = function(){
     originalSaveStateLocalOnly.apply(this, arguments);
     scheduleAutoSaveOnline("saveState");
   };
-  saveState.__autoOnlineWrapped = true;
+  saveState.__stableAutoOnlineWrapped = true;
 }
 
-// Also auto-save email queue logs because queueEmails updates LOG_KEY directly.
-if(typeof queueEmails === "function" && !queueEmails.__autoOnlineWrapped){
+// Wrap applyOnlinePayload để load online không tự kích hoạt auto-save ngược lại.
+if(typeof applyOnlinePayload === "function" && !applyOnlinePayload.__stableAutoOnlineWrapped){
+  const originalApplyOnlinePayload = applyOnlinePayload;
+  applyOnlinePayload = function(record){
+    applyingOnlinePayload = true;
+    try{
+      return originalApplyOnlinePayload.apply(this, arguments);
+    }finally{
+      applyingOnlinePayload = false;
+    }
+  };
+  applyOnlinePayload.__stableAutoOnlineWrapped = true;
+}
+
+// Wrap loadOnlineData: nếu vừa chỉnh local, không load online đè mất dữ liệu mới.
+if(typeof loadOnlineData === "function" && !loadOnlineData.__stableAutoOnlineWrapped){
+  const originalLoadOnlineData = loadOnlineData;
+  loadOnlineData = async function(silent){
+    if(Date.now() < localDirtyUntil || autoSaveOnlineBusy){
+      if(!silent && typeof toast === "function") toast("Đang lưu thay đổi, chưa load online");
+      return;
+    }
+    return originalLoadOnlineData.apply(this, arguments);
+  };
+  loadOnlineData.__stableAutoOnlineWrapped = true;
+}
+
+// Queue email cập nhật emailLogs riêng nên cũng cần autosave.
+if(typeof queueEmails === "function" && !queueEmails.__stableAutoOnlineWrapped){
   const originalQueueEmails = queueEmails;
   queueEmails = function(){
+    markLocalDirty();
     const result = originalQueueEmails.apply(this, arguments);
     scheduleAutoSaveOnline("queueEmails");
     return result;
   };
-  queueEmails.__autoOnlineWrapped = true;
+  queueEmails.__stableAutoOnlineWrapped = true;
+}
+
+// Save Online thủ công thì cũng giải phóng dirty lock sau khi lưu.
+if(typeof saveOnlineData === "function" && !saveOnlineData.__stableAutoOnlineWrapped){
+  const originalSaveOnlineData = saveOnlineData;
+  saveOnlineData = async function(){
+    markLocalDirty();
+    const result = await originalSaveOnlineData.apply(this, arguments);
+    clearLocalDirtySoon();
+    return result;
+  };
+  saveOnlineData.__stableAutoOnlineWrapped = true;
 }
 
 
