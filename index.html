@@ -21,37 +21,44 @@ input,select,textarea{width:100%;border:1px solid var(--border);border-radius:14
 .checks{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.check{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--border);border-radius:999px;padding:8px 10px;background:#fff;font-size:12px;font-weight:900}.check input{width:auto;margin:0}.check:has(input:checked){background:#eff6ff;border-color:#bfdbfe;color:var(--blue2)}
 .email-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px}.email-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}.email-tabs button.active{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}.paper{border:1px solid var(--border);border-radius:18px;background:#fbfdff;padding:18px;min-height:300px}.list{border:1px solid var(--border);border-radius:16px;background:#fff;max-height:330px;overflow:auto}.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border)}.row:last-child{border-bottom:0}.empty{padding:18px;border:1px dashed var(--border);border-radius:18px;color:var(--muted);text-align:center;background:#fbfdff}.toast{position:fixed;right:22px;bottom:22px;background:#101828;color:#fff;padding:12px 14px;border-radius:14px;display:none;z-index:2000}.toast.show{display:block}
 @media(max-width:1100px){.grid-2,.grid-4,.tool-grid,.email-layout{grid-template-columns:1fr}.top{flex-direction:column;align-items:flex-start}}
+
+.admin-only{display:none!important}
+body.admin-mode .admin-only{display:inline-flex!important}
+body.admin-mode button.admin-only{display:inline-flex!important}
+body.admin-mode .admin-only.block{display:block!important}
+.admin-banner{display:none;margin-top:12px;padding:10px 12px;border-radius:14px;background:#ecfdf3;color:#027a48;font-weight:900}
+body.admin-mode .admin-banner{display:block}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="top"><div><h1>VIB Software License Manager</h1><p>Clean enterprise rebuild · stable single HTML</p></div><div class="actions"><button class="btn-secondary" onclick="exportJson()">Export JSON</button><button class="btn-secondary" onclick="resetDemo()">Reset Demo</button></div></div>
+  <div class="top"><div><h1>VIB Software License Manager</h1><p>Clean enterprise rebuild · stable single HTML</p></div><div class="actions"><button class="btn-primary" onclick="adminLogin()">Admin Login</button><button class="btn-secondary admin-only" onclick="adminLogout()">Logout</button><button class="btn-secondary admin-only" onclick="configureOnlineData()">Online Config</button><button class="btn-secondary" onclick="loadOnlineData()">Load Online</button><button class="btn-orange admin-only" onclick="saveOnlineData()">Save Online</button><button class="btn-secondary admin-only" onclick="exportJson()">Export JSON</button><button class="btn-secondary admin-only" onclick="resetDemo()">Reset Demo</button></div></div><div id="adminBanner" class="admin-banner">Admin mode đang bật · Bạn có quyền sửa/thêm tool và save online.</div>
   <div class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="licenses">License Tools</button><button class="tab" data-tab="apps">Application Tools</button><button class="tab" data-tab="email">Email Confirm</button></div>
   <section id="tab-dashboard"><div class="grid-4"><div class="kpi"><div class="muted">Total Software</div><div class="num" id="kpiTools">0</div></div><div class="kpi"><div class="muted">Total Seats</div><div class="num" id="kpiSeats">0</div></div><div class="kpi"><div class="muted">Assigned Users</div><div class="num" id="kpiUsers">0</div></div><div class="kpi"><div class="muted">Annual Cost</div><div class="num" id="kpiCost">0</div></div></div><div class="card"><div class="head"><div><h2>Cost Overview</h2><p>Bảng cost theo từng phần mềm.</p></div></div><div id="costTable"></div></div></section>
-  <section id="tab-licenses" style="display:none"><div class="card"><div class="head"><div><h2>License Tools</h2><p>Adobe, AutoCAD, JetBrains và license truyền thống.</p></div><button class="btn-primary" onclick="openToolModal(null,'Adobe')">+ Thêm Tool</button></div><div class="toolbar"><input id="licenseSearch" placeholder="Tìm license, vendor, user..."><select id="licenseType"><option value="all">All Types</option><option>Adobe</option><option>AutoCAD</option><option>JetBrains</option><option>Other</option></select></div><div id="licenseGrid" class="tool-grid"></div></div></section>
-  <section id="tab-apps" style="display:none"><div class="card"><div class="head"><div><h2>Application Tools</h2><p>AI Tool / AI IDE chia theo Monthly và Yearly.</p></div><button class="btn-primary" onclick="openToolModal(null,'AI Tool')">+ Thêm App Tool</button></div><div class="toolbar"><input id="appSearch" placeholder="Tìm app tool, vendor, user..."><select id="appCycle"><option value="all">All Cycles</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select><select id="appType"><option value="all">All Types</option><option>AI Tool</option><option>AI IDE</option><option>Other</option></select></div><div id="appGroups"></div></div></section>
+  <section id="tab-licenses" style="display:none"><div class="card"><div class="head"><div><h2>License Tools</h2><p>Adobe, AutoCAD, JetBrains và license truyền thống.</p></div><button class="btn-primary admin-only" onclick="openToolModal(null,'Adobe')">+ Thêm Tool</button></div><div class="toolbar"><input id="licenseSearch" placeholder="Tìm license, vendor, user..."><select id="licenseType"><option value="all">All Types</option><option>Adobe</option><option>AutoCAD</option><option>JetBrains</option><option>Other</option></select></div><div id="licenseGrid" class="tool-grid"></div></div></section>
+  <section id="tab-apps" style="display:none"><div class="card"><div class="head"><div><h2>Application Tools</h2><p>AI Tool / AI IDE chia theo Monthly và Yearly.</p></div><button class="btn-primary admin-only" onclick="openToolModal(null,'AI Tool')">+ Thêm App Tool</button></div><div class="toolbar"><input id="appSearch" placeholder="Tìm app tool, vendor, user..."><select id="appCycle"><option value="all">All Cycles</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select><select id="appType"><option value="all">All Types</option><option>AI Tool</option><option>AI IDE</option><option>Other</option></select></div><div id="appGroups"></div></div></section>
   <section id="tab-email" style="display:none">
-    <div class="card"><div class="head"><div><h2>Email Confirm Center</h2><p>Enterprise workflow cho xác nhận gia hạn và xác nhận tiếp tục sử dụng.</p></div><div class="actions"><button class="btn-primary" onclick="openEmailReview()">Send Review</button><button class="btn-orange" onclick="queueEmails()">Queue Email</button><button class="btn-secondary" onclick="exportQueueCsv()">Export Queue CSV</button></div></div><div class="grid-4"><div class="kpi"><div class="muted">Recipients</div><div class="num" id="emailRecipients">0</div></div><div class="kpi"><div class="muted">Pending</div><div class="num" id="emailPending">0</div></div><div class="kpi"><div class="muted">Template</div><div class="num" id="emailTemplateKpi" style="font-size:18px">Gia hạn</div></div><div class="kpi"><div class="muted">Provider</div><div class="num" id="emailProviderKpi" style="font-size:18px">Mock</div></div></div></div>
-    <div class="card"><div class="head"><div><h2>Campaign Setup</h2><p>Chọn loại email, phần mềm, ngày giờ gửi và mốc reminder.</p></div><button class="btn-secondary" onclick="saveEmailConfig()">Save Config</button></div><div class="grid-4"><div><label>Email Type</label><select id="emailType"><option value="renew">Mail xác nhận gia hạn</option><option value="usage">Mail xác nhận sử dụng</option></select></div><div><label>Provider</label><select id="emailProvider"><option value="mock">Mock / Test</option><option value="smtp">SMTP / Real Email</option></select></div><div><label>Sender Mailbox</label><select id="senderMailbox"><option value="license-hub@vib.com.vn">VIB License Hub &lt;license-hub@vib.com.vn&gt;</option><option value="it-support@vib.com.vn">IT Support &lt;it-support@vib.com.vn&gt;</option><option value="software.asset@vib.com.vn">Software Asset &lt;software.asset@vib.com.vn&gt;</option><option value="custom">Custom mailbox...</option></select></div><div><label>Send Date</label><input id="sendDate" type="date"></div><div><label>Send Time</label><input id="sendTime" type="time" value="09:00"></div></div><div id="customSenderWrap" style="margin-top:14px;display:none"><label>Custom Sender Email</label><input id="customSenderEmail" placeholder="your-managed-mailbox@vib.com.vn"><div class="muted" style="margin-top:6px">Real SMTP cần quyền Send As hoặc credential tương ứng cho mailbox này.</div></div><div style="margin-top:14px">
+    <div class="card"><div class="head"><div><h2>Email Confirm Center</h2><p>Enterprise workflow cho xác nhận gia hạn và xác nhận tiếp tục sử dụng.</p></div><div class="actions"><button class="btn-primary admin-only" onclick="openEmailReview()">Send Review</button><button class="btn-orange admin-only" onclick="queueEmails()">Queue Email</button><button class="btn-secondary admin-only" onclick="exportQueueCsv()">Export Queue CSV</button></div></div><div class="grid-4"><div class="kpi"><div class="muted">Recipients</div><div class="num" id="emailRecipients">0</div></div><div class="kpi"><div class="muted">Pending</div><div class="num" id="emailPending">0</div></div><div class="kpi"><div class="muted">Template</div><div class="num" id="emailTemplateKpi" style="font-size:18px">Gia hạn</div></div><div class="kpi"><div class="muted">Provider</div><div class="num" id="emailProviderKpi" style="font-size:18px">Mock</div></div></div></div>
+    <div class="card"><div class="head"><div><h2>Campaign Setup</h2><p>Chọn loại email, phần mềm, ngày giờ gửi và mốc reminder.</p></div><button class="btn-secondary admin-only" onclick="saveEmailConfig()">Save Config</button></div><div class="grid-4"><div><label>Email Type</label><select id="emailType"><option value="renew">Mail xác nhận gia hạn</option><option value="usage">Mail xác nhận sử dụng</option></select></div><div><label>Provider</label><select id="emailProvider"><option value="mock">Mock / Test</option><option value="smtp">SMTP / Real Email</option></select></div><div><label>Sender Mailbox</label><select id="senderMailbox"><option value="license-hub@vib.com.vn">VIB License Hub &lt;license-hub@vib.com.vn&gt;</option><option value="it-support@vib.com.vn">IT Support &lt;it-support@vib.com.vn&gt;</option><option value="software.asset@vib.com.vn">Software Asset &lt;software.asset@vib.com.vn&gt;</option><option value="custom">Custom mailbox...</option></select></div><div><label>Send Date</label><input id="sendDate" type="date"></div><div><label>Send Time</label><input id="sendTime" type="time" value="09:00"></div></div><div id="customSenderWrap" style="margin-top:14px;display:none"><label>Custom Sender Email</label><input id="customSenderEmail" placeholder="your-managed-mailbox@vib.com.vn"><div class="muted" style="margin-top:6px">Real SMTP cần quyền Send As hoặc credential tương ứng cho mailbox này.</div></div><div style="margin-top:14px">
 <label>SharePoint Realtime Config</label>
 <div class="grid-2">
 <div><label>SharePoint Site URL</label><input id="spSiteUrl" placeholder="https://vib.sharepoint.com/sites/YourSite"></div>
 <div><label>List Name</label><input id="spListName" value="LicenseConfirmations"></div>
 </div>
 <div class="actions" style="margin-top:10px">
-<button class="btn-secondary" onclick="saveSharePointConfig()">Save SharePoint Config</button>
+<button class="btn-secondary admin-only" onclick="saveSharePointConfig()">Save SharePoint Config</button>
 <button class="btn-secondary" onclick="syncSharePointStatuses()">Sync Status</button>
 </div>
 <div class="muted" style="margin-top:6px">Upload HTML này lên SharePoint SiteAssets để dùng realtime.</div>
 </div>
 <div style="margin-top:14px"><label>Target Software</label><div id="emailToolChecks" class="checks"></div></div><div style="margin-top:14px"><label>Reminder before renewal</label><div class="checks"><label class="check"><input type="checkbox" class="reminder" value="60">60 days</label><label class="check"><input type="checkbox" class="reminder" value="30" checked>30 days</label><label class="check"><input type="checkbox" class="reminder" value="15" checked>15 days</label><label class="check"><input type="checkbox" class="reminder" value="7" checked>7 days</label><label class="check"><input type="checkbox" class="reminder" value="3">3 days</label><label class="check"><input type="checkbox" class="reminder" value="1">1 day</label></div></div></div>
-    <div class="card"><div class="head"><div><h2>Email Template</h2><p>2 template mẫu rõ ràng, chỉnh được subject/body.</p></div><button class="btn-secondary" onclick="saveTemplate()">Save Template</button></div><div class="email-tabs"><button id="tplRenew" class="btn-secondary active" onclick="setTemplate('renew')">1. Mail xác nhận gia hạn</button><button id="tplUsage" class="btn-secondary" onclick="setTemplate('usage')">2. Mail xác nhận sử dụng</button></div><div class="email-layout"><div><label>Subject</label><input id="emailSubject" style="margin-bottom:12px"><label>Body</label><textarea id="emailBody" style="min-height:330px"></textarea><div class="muted" style="margin-top:8px">Variables: {{user_name}}, {{user_email}}, {{tool_name}}, {{vendor}}, {{renewal_date}}, {{cost}}</div></div><div><div class="head" style="margin-bottom:12px"><div><h2>Live Preview</h2></div><span id="previewType" class="chip active-chip">Gia hạn</span></div><div class="paper"><div class="muted"><b>Subject</b></div><div id="previewSubject" style="font-weight:900;margin:6px 0 14px">-</div><div class="muted"><b>Body</b></div><div id="previewBody" style="line-height:1.7;margin-top:8px">-</div></div></div></div></div>
+    <div class="card"><div class="head"><div><h2>Email Template</h2><p>2 template mẫu rõ ràng, chỉnh được subject/body.</p></div><button class="btn-secondary admin-only" onclick="saveTemplate()">Save Template</button></div><div class="email-tabs"><button id="tplRenew" class="btn-secondary active" onclick="setTemplate('renew')">1. Mail xác nhận gia hạn</button><button id="tplUsage" class="btn-secondary" onclick="setTemplate('usage')">2. Mail xác nhận sử dụng</button></div><div class="email-layout"><div><label>Subject</label><input id="emailSubject" style="margin-bottom:12px"><label>Body</label><textarea id="emailBody" style="min-height:330px"></textarea><div class="muted" style="margin-top:8px">Variables: {{user_name}}, {{user_email}}, {{tool_name}}, {{vendor}}, {{renewal_date}}, {{cost}}</div></div><div><div class="head" style="margin-bottom:12px"><div><h2>Live Preview</h2></div><span id="previewType" class="chip active-chip">Gia hạn</span></div><div class="paper"><div class="muted"><b>Subject</b></div><div id="previewSubject" style="font-weight:900;margin:6px 0 14px">-</div><div class="muted"><b>Body</b></div><div id="previewBody" style="line-height:1.7;margin-top:8px">-</div></div></div></div></div>
     <div class="grid-2"><div class="card"><div class="head"><div><h2>Recipient Preview</h2><p>Người nhận pending theo phần mềm được chọn.</p></div></div><div id="recipientList" class="list"></div></div><div class="card"><div class="head"><div><h2>Evidence Log</h2><p>Lưu vết queue email.</p></div></div><div id="emailLog"></div></div></div><div class="card"><div class="head"><div><h2>SharePoint Realtime Status</h2><p>Trạng thái phản hồi từ LicenseConfirmations.</p></div><button class="btn-secondary" onclick="syncSharePointStatuses()">Refresh</button></div><div id="spStatusTable"></div></div>
   </section>
 </div>
-<div id="toolModal" class="modal"><div class="modal-card"><div class="head"><div><h2 id="toolModalTitle">Thêm Tool</h2><p>Thêm hoặc sửa tool.</p></div><button class="btn-secondary" onclick="closeToolModal()">Close</button></div><div class="form-grid"><div><label>Name</label><input id="toolName"></div><div><label>Vendor</label><input id="toolVendor"></div><div><label>Billing Cycle</label><select id="toolCycle"><option value="yearly">Yearly</option><option value="monthly">Monthly</option></select></div><div><label>Seats</label><input id="toolSeats" type="number"></div><div><label>Cost</label><input id="toolCost" type="number"></div><div><label>Renewal Date</label><input id="toolRenewal" type="date"></div><div class="full"><label>Notes</label><textarea id="toolNotes"></textarea></div></div><div class="actions" style="margin-top:16px"><button class="btn-primary" onclick="saveTool()">Save Tool</button></div></div></div>
-<div id="usersModal" class="modal"><div class="modal-card"><div class="head"><div><h2 id="usersTitle">Users</h2><p>Quản lý người sử dụng theo tool.</p></div><button class="btn-secondary" onclick="closeUsersModal()">Close</button></div><div class="grid-2"><div class="card" style="box-shadow:none;margin:0"><div class="head"><div><h2>Thêm user thủ công</h2></div></div><div class="form-grid"><div><label>Name</label><input id="userName"></div><div><label>Email</label><input id="userEmail"></div><div><label>Department</label><input id="userDept"></div><div><label>Role</label><input id="userRole"></div><div><label>Date</label><input id="userDate" type="date"></div><div><label>Status</label><select id="userStatus"><option>Active</option><option>Inactive</option></select></div></div><div class="actions" style="margin-top:12px"><button class="btn-primary" onclick="addUser()">Add User</button></div></div><div class="card" style="box-shadow:none;margin:0"><div class="head"><div><h2>Import CSV</h2><p>name,email,dept,role,date,status</p></div></div><input id="csvFile" type="file" accept=".csv,text/csv"><div class="actions" style="margin-top:12px"><button class="btn-orange" onclick="importCsv()">Import CSV</button><button class="btn-secondary" onclick="downloadCsvTemplate()">CSV Template</button></div></div></div><div class="card" style="box-shadow:none;margin-top:16px"><div class="head"><div><h2>Danh sách người sử dụng</h2></div></div><div id="usersTable"></div></div></div></div>
-<div id="emailModal" class="modal"><div class="modal-card"><div class="head"><div><h2>Send Review</h2><p>Kiểm tra nội dung trước khi queue/gửi.</p></div><div class="actions"><button class="btn-primary" onclick="queueEmails(true)">Queue Email</button><button class="btn-secondary" onclick="closeEmailModal()">Close</button></div></div><div class="meta" style="margin-bottom:12px"><div class="meta-box"><span>Recipient</span><strong id="modalRecipient">-</strong></div><div class="meta-box"><span>Tool</span><strong id="modalTool">-</strong></div><div class="meta-box"><span>Email Type</span><strong id="modalType">-</strong></div><div class="meta-box"><span>Sender</span><strong id="modalSender">-</strong></div><div class="meta-box"><span>Provider</span><strong id="modalProvider">-</strong></div></div><div class="paper"><div class="muted"><b>Subject</b></div><div id="modalSubject" style="font-weight:900;margin:6px 0 14px">-</div><div class="muted"><b>Body</b></div><div id="modalBody" style="line-height:1.7;margin-top:8px">-</div></div></div></div>
+<div id="toolModal" class="modal"><div class="modal-card"><div class="head"><div><h2 id="toolModalTitle">Thêm Tool</h2><p>Thêm hoặc sửa tool.</p></div><button class="btn-secondary" onclick="closeToolModal()">Close</button></div><div class="form-grid"><div><label>Name</label><input id="toolName"></div><div><label>Vendor</label><input id="toolVendor"></div><div><label>Billing Cycle</label><select id="toolCycle"><option value="yearly">Yearly</option><option value="monthly">Monthly</option></select></div><div><label>Seats</label><input id="toolSeats" type="number"></div><div><label>Cost</label><input id="toolCost" type="number"></div><div><label>Renewal Date</label><input id="toolRenewal" type="date"></div><div class="full"><label>Notes</label><textarea id="toolNotes"></textarea></div></div><div class="actions" style="margin-top:16px"><button class="btn-primary admin-only" onclick="saveTool()">Save Tool</button></div></div></div>
+<div id="usersModal" class="modal"><div class="modal-card"><div class="head"><div><h2 id="usersTitle">Users</h2><p>Quản lý người sử dụng theo tool.</p></div><button class="btn-secondary" onclick="closeUsersModal()">Close</button></div><div class="grid-2"><div class="card" style="box-shadow:none;margin:0"><div class="head"><div><h2>Thêm user thủ công</h2></div></div><div class="form-grid"><div><label>Name</label><input id="userName"></div><div><label>Email</label><input id="userEmail"></div><div><label>Department</label><input id="userDept"></div><div><label>Role</label><input id="userRole"></div><div><label>Date</label><input id="userDate" type="date"></div><div><label>Status</label><select id="userStatus"><option>Active</option><option>Inactive</option></select></div></div><div class="actions" style="margin-top:12px"><button class="btn-primary admin-only" onclick="addUser()">Add User</button></div></div><div class="card" style="box-shadow:none;margin:0"><div class="head"><div><h2>Import CSV</h2><p>name,email,dept,role,date,status</p></div></div><input id="csvFile" type="file" accept=".csv,text/csv"><div class="actions" style="margin-top:12px"><button class="btn-orange admin-only" onclick="importCsv()">Import CSV</button><button class="btn-secondary admin-only" onclick="downloadCsvTemplate()">CSV Template</button></div></div></div><div class="card" style="box-shadow:none;margin-top:16px"><div class="head"><div><h2>Danh sách người sử dụng</h2></div></div><div id="usersTable"></div></div></div></div>
+<div id="emailModal" class="modal"><div class="modal-card"><div class="head"><div><h2>Send Review</h2><p>Kiểm tra nội dung trước khi queue/gửi.</p></div><div class="actions"><button class="btn-primary admin-only" onclick="queueEmails(true)">Queue Email</button><button class="btn-secondary" onclick="closeEmailModal()">Close</button></div></div><div class="meta" style="margin-bottom:12px"><div class="meta-box"><span>Recipient</span><strong id="modalRecipient">-</strong></div><div class="meta-box"><span>Tool</span><strong id="modalTool">-</strong></div><div class="meta-box"><span>Email Type</span><strong id="modalType">-</strong></div><div class="meta-box"><span>Sender</span><strong id="modalSender">-</strong></div><div class="meta-box"><span>Provider</span><strong id="modalProvider">-</strong></div></div><div class="paper"><div class="muted"><b>Subject</b></div><div id="modalSubject" style="font-weight:900;margin:6px 0 14px">-</div><div class="muted"><b>Body</b></div><div id="modalBody" style="line-height:1.7;margin-top:8px">-</div></div></div></div>
 <div id="toast" class="toast"></div>
 <script>
 const LS_KEY="vib_lm_clean_v2",LOG_KEY="vib_lm_logs_v2";let editingToolIndex=null,currentUserToolIndex=null,currentTemplate="renew",defaultToolType="Other";
@@ -88,12 +95,12 @@ function $(id){return document.getElementById(id)}function saveState(){localStor
 function setTab(tab){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));["dashboard","licenses","apps","email"].forEach(x=>$("tab-"+x).style.display=x===tab?"":"none");if(tab==="email")renderEmail()}document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 function renderAll(){renderDashboard();renderLicenseTools();renderAppTools();renderEmail()}
 function renderDashboard(){let users=allUsers(),cost=state.tools.reduce((s,t)=>s+Number(t.cost||0),0),seats=state.tools.reduce((s,t)=>s+Number(t.seats||0),0);$("kpiTools").textContent=state.tools.length;$("kpiSeats").textContent=seats;$("kpiUsers").textContent=users.length;$("kpiCost").textContent=money(cost);let rows=state.tools.map(t=>{let used=(t.users||[]).length,pending=(t.users||[]).filter(u=>(u.renewalStatus||"Pending")==="Pending").length;return `<tr><td><strong>${esc(t.name)}</strong></td><td>${esc(t.vendor)}</td><td>${costLabel(t)}</td><td>${used}/${t.seats}</td><td><span class="chip ${daysLeft(t.renewal)<=7?'bad-chip':daysLeft(t.renewal)<=30?'warn-chip':'active-chip'}">${daysLeft(t.renewal)} days</span></td><td>${esc(t.renewal)}</td></tr>`}).join("");$("costTable").innerHTML=`<div class="table-wrap"><table><thead><tr><th>Software</th><th>Vendor</th><th>Cost</th><th>Usage</th><th>Days Left</th><th>Renewal</th></tr></thead><tbody>${rows}</tbody></table></div>`}
-function toolCard(t,i){let used=(t.users||[]).length,pending=(t.users||[]).filter(u=>(u.renewalStatus||"Pending")==="Pending").length,p=t.seats?Math.round(used/t.seats*100):0;return `<div class="tool-card"><div class="tool-top"><div><div class="icon">${esc(t.type[0]||"T")}</div><div class="tool-name">${esc(t.name)}</div></div><span class="chip ${used<t.seats?"active-chip":"warn-chip"}">${used<t.seats?"Available":"Full"}</span></div><div><div class="bar"><div style="width:${Math.min(100,p)}%"></div></div><div class="muted" style="display:flex;justify-content:space-between;margin-top:7px"><span>${used}/${t.seats} users</span><span>${p}%</span></div></div><div class="meta"><div class="meta-box"><span>Cost</span><strong>${costLabel(t)}</strong></div><div class="meta-box"><span>Renewal</span><strong>${esc(t.renewal)}</strong></div><div class="meta-box"><span>Days Left</span><strong>${daysLeft(t.renewal)} days</strong></div></div><div class="actions"><button class="btn-secondary" onclick="openUsersModal(${i})">Users</button><button class="btn-orange" onclick="openEmailReview(${i})">Send Review</button><button class="btn-secondary" onclick="openToolModal(${i})">Edit</button><button class="btn-danger" onclick="deleteTool(${i})">Delete</button></div></div>`}
+function toolCard(t,i){let used=(t.users||[]).length,pending=(t.users||[]).filter(u=>(u.renewalStatus||"Pending")==="Pending").length,p=t.seats?Math.round(used/t.seats*100):0;return `<div class="tool-card"><div class="tool-top"><div><div class="icon">${esc(t.type[0]||"T")}</div><div class="tool-name">${esc(t.name)}</div></div><span class="chip ${used<t.seats?"active-chip":"warn-chip"}">${used<t.seats?"Available":"Full"}</span></div><div><div class="bar"><div style="width:${Math.min(100,p)}%"></div></div><div class="muted" style="display:flex;justify-content:space-between;margin-top:7px"><span>${used}/${t.seats} users</span><span>${p}%</span></div></div><div class="meta"><div class="meta-box"><span>Cost</span><strong>${costLabel(t)}</strong></div><div class="meta-box"><span>Renewal</span><strong>${esc(t.renewal)}</strong></div><div class="meta-box"><span>Days Left</span><strong>${daysLeft(t.renewal)} days</strong></div></div><div class="actions"><button class="btn-secondary" onclick="openUsersModal(${i})">Users</button><button class="btn-orange admin-only" onclick="openEmailReview(${i})">Send Review</button><button class="btn-secondary admin-only" onclick="openToolModal(${i})">Edit</button><button class="btn-danger admin-only" onclick="deleteTool(${i})">Delete</button></div></div>`}
 function renderLicenseTools(){let q=$("licenseSearch").value.toLowerCase().trim(),type=$("licenseType").value;let list=state.tools.map((t,i)=>({t,i})).filter(x=>!isAppTool(x.t)).filter(x=>(type==="all"||x.t.type===type)&&JSON.stringify(x.t).toLowerCase().includes(q));$("licenseGrid").innerHTML=list.map(x=>toolCard(x.t,x.i)).join("")||`<div class="empty">No license tools.</div>`}
 function renderAppTools(){let q=$("appSearch").value.toLowerCase().trim(),cycle=$("appCycle").value,type=$("appType").value;let list=state.tools.map((t,i)=>({t,i})).filter(x=>isAppTool(x.t)||x.t.type==="Other").filter(x=>(cycle==="all"||x.t.billingCycle===cycle)&&(type==="all"||x.t.type===type)&&JSON.stringify(x.t).toLowerCase().includes(q));let group=(name,items)=>items.length?`<div class="card" style="box-shadow:none"><div class="head"><div><h2>${name}</h2><p>${items.length} tools</p></div></div><div class="tool-grid">${items.map(x=>toolCard(x.t,x.i)).join("")}</div></div>`:"";$("appGroups").innerHTML=(cycle==="monthly"?group("Monthly Tools",list.filter(x=>x.t.billingCycle==="monthly")):cycle==="yearly"?group("Yearly Tools",list.filter(x=>x.t.billingCycle==="yearly")):group("Monthly Tools",list.filter(x=>x.t.billingCycle==="monthly"))+group("Yearly Tools",list.filter(x=>x.t.billingCycle==="yearly")))||`<div class="empty">No application tools.</div>`}
 ["licenseSearch","licenseType"].forEach(id=>$(id).oninput=$(id).onchange=renderLicenseTools);["appSearch","appCycle","appType"].forEach(id=>$(id).oninput=$(id).onchange=renderAppTools);
 function openToolModal(i=null,defaultType="Adobe"){defaultToolType=defaultType;editingToolIndex=i;let t=i==null?{}:state.tools[i];$("toolModalTitle").textContent=i==null?"Thêm Tool":"Sửa Tool";$("toolName").value=t.name||"";$("toolVendor").value=t.vendor||"";$("toolCycle").value=t.billingCycle||(["AI Tool","AI IDE"].includes(defaultType)?"monthly":"yearly");$("toolSeats").value=t.seats||0;$("toolCost").value=t.cost||0;$("toolRenewal").value=t.renewal||"";$("toolNotes").value=t.notes||"";$("toolModal").classList.add("show")}function closeToolModal(){$("toolModal").classList.remove("show")}function saveTool(){let autoType=editingToolIndex==null?defaultToolType:(state.tools[editingToolIndex]?.type||"Other");let payload={code:("TOOL-"+Date.now()),name:$("toolName").value.trim(),vendor:$("toolVendor").value.trim(),type:autoType,billingCycle:$("toolCycle").value,seats:Number($("toolSeats").value||0),cost:Number($("toolCost").value||0),renewal:$("toolRenewal").value,notes:$("toolNotes").value.trim(),users:editingToolIndex==null?[]:state.tools[editingToolIndex].users||[]};if(!payload.name){toast("Name là bắt buộc");return}if(editingToolIndex==null)state.tools.push(payload);else state.tools[editingToolIndex]=payload;saveState();closeToolModal();renderAll();toast("Tool saved")}function deleteTool(i){if(confirm("Delete tool?")){state.tools.splice(i,1);saveState();renderAll();toast("Tool deleted")}}
-function openUsersModal(i){currentUserToolIndex=i;$("usersTitle").textContent=state.tools[i].name+" - Users";$("userDate").value=new Date().toISOString().slice(0,10);renderUsersTable();$("usersModal").classList.add("show")}function closeUsersModal(){$("usersModal").classList.remove("show")}function renderUsersTable(){let t=state.tools[currentUserToolIndex];let rows=(t.users||[]).map((u,ui)=>`<tr><td><div class="user-cell"><div class="avatar">${initials(u.name)}</div><div><strong>${esc(u.name)}</strong><div class="muted">${esc(u.email)}</div></div></div></td><td>${esc(u.dept)}<div class="muted">${esc(u.role)}</div></td><td><span class="chip ${u.status==="Active"?"active-chip":"info-chip"}">${esc(u.status)}</span></td><td><span class="chip ${statusClass(u.renewalStatus||"Pending")}">${esc(u.renewalStatus||"Pending")}</span></td><td><button class="btn-orange" onclick="openEmailReview(${currentUserToolIndex},${ui})">Send Review</button><button class="btn-danger" onclick="removeUser(${ui})">Remove</button></td></tr>`).join("");$("usersTable").innerHTML=rows?`<div class="table-wrap"><table><thead><tr><th>User</th><th>Department / Role</th><th>Status</th><th>Days Left</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="empty">No users.</div>`}
+function openUsersModal(i){currentUserToolIndex=i;$("usersTitle").textContent=state.tools[i].name+" - Users";$("userDate").value=new Date().toISOString().slice(0,10);renderUsersTable();$("usersModal").classList.add("show")}function closeUsersModal(){$("usersModal").classList.remove("show")}function renderUsersTable(){let t=state.tools[currentUserToolIndex];let rows=(t.users||[]).map((u,ui)=>`<tr><td><div class="user-cell"><div class="avatar">${initials(u.name)}</div><div><strong>${esc(u.name)}</strong><div class="muted">${esc(u.email)}</div></div></div></td><td>${esc(u.dept)}<div class="muted">${esc(u.role)}</div></td><td><span class="chip ${u.status==="Active"?"active-chip":"info-chip"}">${esc(u.status)}</span></td><td><span class="chip ${statusClass(u.renewalStatus||"Pending")}">${esc(u.renewalStatus||"Pending")}</span></td><td><button class="btn-orange admin-only" onclick="openEmailReview(${currentUserToolIndex},${ui})">Send Review</button><button class="btn-danger admin-only" onclick="removeUser(${ui})">Remove</button></td></tr>`).join("");$("usersTable").innerHTML=rows?`<div class="table-wrap"><table><thead><tr><th>User</th><th>Department / Role</th><th>Status</th><th>Days Left</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="empty">No users.</div>`}
 function addUser(){let t=state.tools[currentUserToolIndex],name=$("userName").value.trim(),email=$("userEmail").value.trim();if(!name||!email){toast("Name và Email là bắt buộc");return}t.users=t.users||[];t.users.push({name,email,dept:$("userDept").value.trim(),role:$("userRole").value.trim(),date:$("userDate").value,status:$("userStatus").value,renewalStatus:"Pending",lastEmailSent:""});["userName","userEmail","userDept","userRole"].forEach(id=>$(id).value="");saveState();renderAll();renderUsersTable();toast("User added")}function removeUser(i){if(confirm("Remove user?")){state.tools[currentUserToolIndex].users.splice(i,1);saveState();renderAll();renderUsersTable()}}
 function csvLine(line){let out=[],cur="",q=false;for(let i=0;i<line.length;i++){let c=line[i];if(c=='"'&&line[i+1]=='"'){cur+='"';i++}else if(c=='"')q=!q;else if(c==","&&!q){out.push(cur.trim());cur=""}else cur+=c}out.push(cur.trim());return out}async function importCsv(){let f=$("csvFile").files[0];if(!f){toast("Choose CSV file");return}let text=await f.text(),lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),start=/name.*email/i.test(lines[0])?1:0,count=0,t=state.tools[currentUserToolIndex];t.users=t.users||[];for(let i=start;i<lines.length;i++){let [name,email,dept,role,date,status]=csvLine(lines[i]);if(name&&email){t.users.push({name,email,dept:dept||"",role:role||"",date:date||new Date().toISOString().slice(0,10),status:status||"Active",renewalStatus:"Pending",lastEmailSent:""});count++}}saveState();renderAll();renderUsersTable();toast(count+" users imported")}function downloadCsvTemplate(){let b=new Blob(["name,email,dept,role,date,status\nNguyen Van A,user@vib.com.vn,IT,Developer,2026-05-11,Active\n"],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="license_users_template.csv";a.click();URL.revokeObjectURL(a.href)}
 function senderEmail(){let v=$("senderMailbox")?$("senderMailbox").value:"license-hub@vib.com.vn";return v==="custom"?(($("customSenderEmail")?.value||"").trim()||"custom-mailbox@vib.com.vn"):v}
@@ -155,6 +162,121 @@ function exportQueueCsv(){
 
 function exportJson(){let b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="vib_license_manager_data.json";a.click();URL.revokeObjectURL(a.href)}function resetDemo(){if(confirm("Reset demo data?")){state={tools:JSON.parse(JSON.stringify(demoTools)),emailConfig:{}};emailLogs=[];localStorage.removeItem(LOG_KEY);saveState();renderEmailChecks();setTemplate("renew");renderAll();toast("Demo reset")}}
 setTemplate("renew");renderEmailChecks();renderAll();
+
+
+
+// JSONBin online data integration
+const JSONBIN_CONFIG_KEY = "vib_jsonbin_config_v1";
+
+function getOnlineConfig(){
+  let raw = localStorage.getItem(JSONBIN_CONFIG_KEY);
+  let cfg = raw ? JSON.parse(raw) : {};
+  return {
+    binId: cfg.binId || "",
+    accessKey: cfg.accessKey || ""
+  };
+}
+
+function configureOnlineData(){
+  const current = getOnlineConfig();
+  const binId = prompt("Nhập JSONBin Bin ID", current.binId || "");
+  if(!binId) return;
+  const accessKey = prompt("Nhập JSONBin Access Key", current.accessKey || "");
+  if(!accessKey) return;
+
+  localStorage.setItem(JSONBIN_CONFIG_KEY, JSON.stringify({
+    binId: binId.trim(),
+    accessKey: accessKey.trim()
+  }));
+
+  if(typeof toast === "function") toast("Online config saved");
+}
+
+function jsonBinUrl(){
+  const cfg = getOnlineConfig();
+  if(!cfg.binId || !cfg.accessKey){
+    configureOnlineData();
+  }
+
+  const latest = getOnlineConfig();
+  if(!latest.binId || !latest.accessKey){
+    throw new Error("Missing JSONBin config");
+  }
+
+  return {
+    url: "https://api.jsonbin.io/v3/b/" + latest.binId,
+    key: latest.accessKey
+  };
+}
+
+async function loadOnlineData(){
+  try{
+    const cfg = jsonBinUrl();
+
+    const res = await fetch(cfg.url + "/latest", {
+      method: "GET",
+      headers: {
+        "X-Access-Key": cfg.key
+      }
+    });
+
+    if(!res.ok){
+      throw new Error(await res.text());
+    }
+
+    const json = await res.json();
+    const record = json.record || {};
+
+    state = {
+      tools: record.tools || [],
+      emailConfig: record.emailConfig || {}
+    };
+
+    emailLogs = record.emailLogs || record.logs || [];
+    localStorage.setItem(LOG_KEY, JSON.stringify(emailLogs));
+
+    saveState();
+    if(typeof renderAll === "function") renderAll();
+    if(typeof toast === "function") toast("Loaded online data");
+  }catch(e){
+    console.error(e);
+    if(typeof toast === "function") toast("Load online failed");
+    alert("Load Online lỗi: " + (e.message || e));
+  }
+}
+
+async function saveOnlineData(){
+  try{
+    const cfg = jsonBinUrl();
+
+    const payload = {
+      tools: state.tools || [],
+      emailConfig: state.emailConfig || {},
+      emailLogs: emailLogs || [],
+      updatedAt: new Date().toISOString()
+    };
+
+    const res = await fetch(cfg.url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Access-Key": cfg.key
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if(!res.ok){
+      throw new Error(await res.text());
+    }
+
+    saveState();
+    if(typeof toast === "function") toast("Saved online data");
+  }catch(e){
+    console.error(e);
+    if(typeof toast === "function") toast("Save online failed");
+    alert("Save Online lỗi: " + (e.message || e));
+  }
+}
 
 
 // SharePoint realtime integration
@@ -287,4 +409,101 @@ function ensureSpButtonsInTemplate(){
 loadSharePointConfig();
 setTimeout(()=>{loadSharePointConfig();ensureSpButtonsInTemplate();syncSharePointStatuses();},700);
 handleSpAction();
+
+// Admin UI gate
+const ADMIN_SESSION_KEY = "vib_admin_session_v1";
+const ADMIN_PASSWORD_HASH_KEY = "vib_admin_password_hash_v1";
+
+// Default password: admin123
+// Change after first login by calling setAdminPassword() in browser console,
+// or press Admin Login and choose to set password when asked.
+const DEFAULT_ADMIN_HASH = "240be518fabd2724f17df2a15a439f58c6b4e4e1d97a4f6d7c54ea982b8f8d7d";
+
+async function sha256Text(text){
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest("SHA-256", enc.encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+function getAdminHash(){
+  return localStorage.getItem(ADMIN_PASSWORD_HASH_KEY) || DEFAULT_ADMIN_HASH;
+}
+
+async function setAdminPassword(){
+  const p1 = prompt("Nhập mật khẩu admin mới");
+  if(!p1) return;
+  const p2 = prompt("Nhập lại mật khẩu admin mới");
+  if(p1 !== p2){
+    alert("Mật khẩu nhập lại không khớp");
+    return;
+  }
+  localStorage.setItem(ADMIN_PASSWORD_HASH_KEY, await sha256Text(p1));
+  alert("Đã đổi mật khẩu admin trên browser này");
+}
+
+async function adminLogin(){
+  const pass = prompt("Nhập mật khẩu admin");
+  if(!pass) return;
+  const hash = await sha256Text(pass);
+  if(hash !== getAdminHash()){
+    alert("Sai mật khẩu admin");
+    return;
+  }
+  sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
+  applyAdminMode();
+  if(typeof toast === "function") toast("Admin mode enabled");
+}
+
+function adminLogout(){
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  applyAdminMode();
+  if(typeof toast === "function") toast("Admin mode disabled");
+}
+
+function isAdmin(){
+  return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1";
+}
+
+function applyAdminMode(){
+  document.body.classList.toggle("admin-mode", isAdmin());
+}
+
+function requireAdmin(){
+  if(isAdmin()) return true;
+  alert("Chỉ admin mới được thực hiện thao tác này");
+  return false;
+}
+
+// Protect sensitive functions
+function guardAdminFunction(name){
+  const fn = window[name];
+  if(typeof fn !== "function" || fn.__guarded) return;
+  const guarded = function(){
+    if(!requireAdmin()) return;
+    return fn.apply(this, arguments);
+  };
+  guarded.__guarded = true;
+  window[name] = guarded;
+}
+
+[
+  "openToolModal",
+  "saveTool",
+  "deleteTool",
+  "addUser",
+  "removeUser",
+  "importCsv",
+  "queueEmails",
+  "saveEmailConfig",
+  "saveTemplate",
+  "saveOnlineData",
+  "configureOnlineData",
+  "resetDemo",
+  "exportJson",
+  "exportQueueCsv",
+  "saveSharePointConfig"
+].forEach(guardAdminFunction);
+
+setTimeout(applyAdminMode, 100);
+
 </script></body></html>
