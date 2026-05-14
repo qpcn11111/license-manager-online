@@ -702,4 +702,59 @@ setTimeout(function(){
   }catch(e){ console.error(e); }
 }, 800);
 
+
+
+// ===== Auto Save Online after local changes =====
+let autoSaveOnlineTimer = null;
+let autoSaveOnlineBusy = false;
+
+async function autoSaveOnlineData(reason){
+  try{
+    if(!isAdmin || !isAdmin()) return;
+    if(typeof jsonBinConfig !== "function" || !jsonBinConfig(false)) return;
+    if(typeof isOnlineLoading !== "undefined" && isOnlineLoading) return;
+    if(autoSaveOnlineBusy) return;
+
+    autoSaveOnlineBusy = true;
+    await putOnlineRecord(currentOnlinePayload(), false);
+    if(typeof toast === "function") toast("Auto saved online");
+  }catch(e){
+    console.error(e);
+    if(typeof toast === "function") toast("Auto save online failed");
+  }finally{
+    autoSaveOnlineBusy = false;
+  }
+}
+
+function scheduleAutoSaveOnline(reason){
+  if(typeof autoRefreshEnabled !== "undefined") autoRefreshEnabled = false;
+  if(autoSaveOnlineTimer) clearTimeout(autoSaveOnlineTimer);
+
+  autoSaveOnlineTimer = setTimeout(async function(){
+    await autoSaveOnlineData(reason);
+    if(typeof autoRefreshEnabled !== "undefined") autoRefreshEnabled = true;
+  }, 800);
+}
+
+if(typeof saveState === "function" && !saveState.__autoOnlineWrapped){
+  const originalSaveStateLocalOnly = saveState;
+  saveState = function(){
+    originalSaveStateLocalOnly.apply(this, arguments);
+    scheduleAutoSaveOnline("saveState");
+  };
+  saveState.__autoOnlineWrapped = true;
+}
+
+// Also auto-save email queue logs because queueEmails updates LOG_KEY directly.
+if(typeof queueEmails === "function" && !queueEmails.__autoOnlineWrapped){
+  const originalQueueEmails = queueEmails;
+  queueEmails = function(){
+    const result = originalQueueEmails.apply(this, arguments);
+    scheduleAutoSaveOnline("queueEmails");
+    return result;
+  };
+  queueEmails.__autoOnlineWrapped = true;
+}
+
+
 </script></body></html>
