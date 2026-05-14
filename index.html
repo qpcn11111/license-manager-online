@@ -506,4 +506,53 @@ function guardAdminFunction(name){
 
 setTimeout(applyAdminMode, 100);
 
+
+// Simple Admin Login Override
+const SIMPLE_ADMIN_SESSION_KEY = "vib_simple_admin_session_v1";
+const SIMPLE_ADMIN_PASSWORD_KEY = "vib_simple_admin_password_v1";
+
+function getSimpleAdminPassword(){
+  return localStorage.getItem(SIMPLE_ADMIN_PASSWORD_KEY) || "admin123";
+}
+
+function adminLogin(){
+  const pass = prompt("Nhập mật khẩu admin");
+  if(!pass) return;
+  if(pass !== getSimpleAdminPassword()){
+    alert("Sai mật khẩu admin");
+    return;
+  }
+  sessionStorage.setItem(SIMPLE_ADMIN_SESSION_KEY, "1");
+  applyAdminMode();
+  if(typeof toast === "function") toast("Admin mode enabled");
+}
+
+function adminLogout(){
+  sessionStorage.removeItem(SIMPLE_ADMIN_SESSION_KEY);
+  applyAdminMode();
+  if(typeof toast === "function") toast("Admin mode disabled");
+}
+
+function isAdmin(){
+  return sessionStorage.getItem(SIMPLE_ADMIN_SESSION_KEY) === "1";
+}
+
+function applyAdminMode(){
+  document.body.classList.toggle("admin-mode", isAdmin());
+}
+
+function setAdminPassword(){
+  const p1 = prompt("Nhập mật khẩu admin mới");
+  if(!p1) return;
+  const p2 = prompt("Nhập lại mật khẩu admin mới");
+  if(p1 !== p2){
+    alert("Mật khẩu nhập lại không khớp");
+    return;
+  }
+  localStorage.setItem(SIMPLE_ADMIN_PASSWORD_KEY, p1);
+  alert("Đã đổi mật khẩu admin");
+}
+
+setTimeout(applyAdminMode, 100);
+
 </script></body></html>
