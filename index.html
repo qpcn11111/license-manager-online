@@ -24,16 +24,17 @@ input,select,textarea{width:100%;border:1px solid var(--border);border-radius:14
 
 .admin-only{display:none!important}
 body.admin-mode .admin-only{display:inline-flex!important}
-body.admin-mode button.admin-only{display:inline-flex!important}
 body.admin-mode .admin-only.block{display:block!important}
 .admin-banner{display:none;margin-top:12px;padding:10px 12px;border-radius:14px;background:#ecfdf3;color:#027a48;font-weight:900}
 body.admin-mode .admin-banner{display:block}
+.sync-chip{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;background:#eef4ff;color:#0b5cab;font-size:12px;font-weight:900;margin-left:8px}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="top"><div><h1>VIB Software License Manager</h1><p>Clean enterprise rebuild · stable single HTML</p></div><div class="actions"><button class="btn-primary" onclick="adminLogin()">Admin Login</button><button class="btn-secondary admin-only" onclick="adminLogout()">Logout</button><button class="btn-secondary admin-only" onclick="configureOnlineData()">Online Config</button><button class="btn-secondary" onclick="loadOnlineData()">Load Online</button><button class="btn-orange admin-only" onclick="saveOnlineData()">Save Online</button><button class="btn-secondary admin-only" onclick="exportJson()">Export JSON</button><button class="btn-secondary admin-only" onclick="resetDemo()">Reset Demo</button></div></div><div id="adminBanner" class="admin-banner">Admin mode đang bật · Bạn có quyền sửa/thêm tool và save online.</div>
-  <div class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="licenses">License Tools</button><button class="tab" data-tab="apps">Application Tools</button><button class="tab" data-tab="email">Email Confirm</button></div>
+  <div class="top"><div><h1>VIB Software License Manager</h1><p>Clean enterprise rebuild · stable single HTML</p></div><div class="actions"><button class="btn-primary" onclick="adminLogin()">Admin Login</button><button class="btn-secondary admin-only" onclick="adminLogout()">Logout</button><button class="btn-secondary admin-only" onclick="configureOnlineData()">Online Config</button><button class="btn-secondary" onclick="loadOnlineData()">Load Online</button><button class="btn-orange admin-only" onclick="saveOnlineData()">Save Online</button><button class="btn-secondary admin-only" onclick="exportJson()">Export JSON</button><button class="btn-secondary admin-only" onclick="resetDemo()">Reset Demo</button></div></div>
+  <div id="adminBanner" class="admin-banner">Admin mode đang bật · Có quyền thêm/sửa/xóa, Save Online và gửi email.</div><div class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="licenses">License Tools</button><button class="tab" data-tab="apps">Application Tools</button><button class="tab" data-tab="email">Email Confirm</button></div>
   <section id="tab-dashboard"><div class="grid-4"><div class="kpi"><div class="muted">Total Software</div><div class="num" id="kpiTools">0</div></div><div class="kpi"><div class="muted">Total Seats</div><div class="num" id="kpiSeats">0</div></div><div class="kpi"><div class="muted">Assigned Users</div><div class="num" id="kpiUsers">0</div></div><div class="kpi"><div class="muted">Annual Cost</div><div class="num" id="kpiCost">0</div></div></div><div class="card"><div class="head"><div><h2>Cost Overview</h2><p>Bảng cost theo từng phần mềm.</p></div></div><div id="costTable"></div></div></section>
   <section id="tab-licenses" style="display:none"><div class="card"><div class="head"><div><h2>License Tools</h2><p>Adobe, AutoCAD, JetBrains và license truyền thống.</p></div><button class="btn-primary admin-only" onclick="openToolModal(null,'Adobe')">+ Thêm Tool</button></div><div class="toolbar"><input id="licenseSearch" placeholder="Tìm license, vendor, user..."><select id="licenseType"><option value="all">All Types</option><option>Adobe</option><option>AutoCAD</option><option>JetBrains</option><option>Other</option></select></div><div id="licenseGrid" class="tool-grid"></div></div></section>
   <section id="tab-apps" style="display:none"><div class="card"><div class="head"><div><h2>Application Tools</h2><p>AI Tool / AI IDE chia theo Monthly và Yearly.</p></div><button class="btn-primary admin-only" onclick="openToolModal(null,'AI Tool')">+ Thêm App Tool</button></div><div class="toolbar"><input id="appSearch" placeholder="Tìm app tool, vendor, user..."><select id="appCycle"><option value="all">All Cycles</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select><select id="appType"><option value="all">All Types</option><option>AI Tool</option><option>AI IDE</option><option>Other</option></select></div><div id="appGroups"></div></div></section>
@@ -162,121 +163,6 @@ function exportQueueCsv(){
 
 function exportJson(){let b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="vib_license_manager_data.json";a.click();URL.revokeObjectURL(a.href)}function resetDemo(){if(confirm("Reset demo data?")){state={tools:JSON.parse(JSON.stringify(demoTools)),emailConfig:{}};emailLogs=[];localStorage.removeItem(LOG_KEY);saveState();renderEmailChecks();setTemplate("renew");renderAll();toast("Demo reset")}}
 setTemplate("renew");renderEmailChecks();renderAll();
-
-
-
-// JSONBin online data integration
-const JSONBIN_CONFIG_KEY = "vib_jsonbin_config_v1";
-
-function getOnlineConfig(){
-  let raw = localStorage.getItem(JSONBIN_CONFIG_KEY);
-  let cfg = raw ? JSON.parse(raw) : {};
-  return {
-    binId: cfg.binId || "",
-    accessKey: cfg.accessKey || ""
-  };
-}
-
-function configureOnlineData(){
-  const current = getOnlineConfig();
-  const binId = prompt("Nhập JSONBin Bin ID", current.binId || "");
-  if(!binId) return;
-  const accessKey = prompt("Nhập JSONBin Access Key", current.accessKey || "");
-  if(!accessKey) return;
-
-  localStorage.setItem(JSONBIN_CONFIG_KEY, JSON.stringify({
-    binId: binId.trim(),
-    accessKey: accessKey.trim()
-  }));
-
-  if(typeof toast === "function") toast("Online config saved");
-}
-
-function jsonBinUrl(){
-  const cfg = getOnlineConfig();
-  if(!cfg.binId || !cfg.accessKey){
-    configureOnlineData();
-  }
-
-  const latest = getOnlineConfig();
-  if(!latest.binId || !latest.accessKey){
-    throw new Error("Missing JSONBin config");
-  }
-
-  return {
-    url: "https://api.jsonbin.io/v3/b/" + latest.binId,
-    key: latest.accessKey
-  };
-}
-
-async function loadOnlineData(){
-  try{
-    const cfg = jsonBinUrl();
-
-    const res = await fetch(cfg.url + "/latest", {
-      method: "GET",
-      headers: {
-        "X-Access-Key": cfg.key
-      }
-    });
-
-    if(!res.ok){
-      throw new Error(await res.text());
-    }
-
-    const json = await res.json();
-    const record = json.record || {};
-
-    state = {
-      tools: record.tools || [],
-      emailConfig: record.emailConfig || {}
-    };
-
-    emailLogs = record.emailLogs || record.logs || [];
-    localStorage.setItem(LOG_KEY, JSON.stringify(emailLogs));
-
-    saveState();
-    if(typeof renderAll === "function") renderAll();
-    if(typeof toast === "function") toast("Loaded online data");
-  }catch(e){
-    console.error(e);
-    if(typeof toast === "function") toast("Load online failed");
-    alert("Load Online lỗi: " + (e.message || e));
-  }
-}
-
-async function saveOnlineData(){
-  try{
-    const cfg = jsonBinUrl();
-
-    const payload = {
-      tools: state.tools || [],
-      emailConfig: state.emailConfig || {},
-      emailLogs: emailLogs || [],
-      updatedAt: new Date().toISOString()
-    };
-
-    const res = await fetch(cfg.url, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Access-Key": cfg.key
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if(!res.ok){
-      throw new Error(await res.text());
-    }
-
-    saveState();
-    if(typeof toast === "function") toast("Saved online data");
-  }catch(e){
-    console.error(e);
-    if(typeof toast === "function") toast("Save online failed");
-    alert("Save Online lỗi: " + (e.message || e));
-  }
-}
 
 
 // SharePoint realtime integration
@@ -410,106 +296,14 @@ loadSharePointConfig();
 setTimeout(()=>{loadSharePointConfig();ensureSpButtonsInTemplate();syncSharePointStatuses();},700);
 handleSpAction();
 
-// Admin UI gate
-const ADMIN_SESSION_KEY = "vib_admin_session_v1";
-const ADMIN_PASSWORD_HASH_KEY = "vib_admin_password_hash_v1";
 
-// Default password: admin123
-// Change after first login by calling setAdminPassword() in browser console,
-// or press Admin Login and choose to set password when asked.
-const DEFAULT_ADMIN_HASH = "240be518fabd2724f17df2a15a439f58c6b4e4e1d97a4f6d7c54ea982b8f8d7d";
-
-async function sha256Text(text){
-  const enc = new TextEncoder();
-  const buf = await crypto.subtle.digest("SHA-256", enc.encode(text));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
-
-function getAdminHash(){
-  return localStorage.getItem(ADMIN_PASSWORD_HASH_KEY) || DEFAULT_ADMIN_HASH;
-}
-
-async function setAdminPassword(){
-  const p1 = prompt("Nhập mật khẩu admin mới");
-  if(!p1) return;
-  const p2 = prompt("Nhập lại mật khẩu admin mới");
-  if(p1 !== p2){
-    alert("Mật khẩu nhập lại không khớp");
-    return;
-  }
-  localStorage.setItem(ADMIN_PASSWORD_HASH_KEY, await sha256Text(p1));
-  alert("Đã đổi mật khẩu admin trên browser này");
-}
-
-async function adminLogin(){
-  const pass = prompt("Nhập mật khẩu admin");
-  if(!pass) return;
-  const hash = await sha256Text(pass);
-  if(hash !== getAdminHash()){
-    alert("Sai mật khẩu admin");
-    return;
-  }
-  sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
-  applyAdminMode();
-  if(typeof toast === "function") toast("Admin mode enabled");
-}
-
-function adminLogout(){
-  sessionStorage.removeItem(ADMIN_SESSION_KEY);
-  applyAdminMode();
-  if(typeof toast === "function") toast("Admin mode disabled");
-}
-
-function isAdmin(){
-  return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1";
-}
-
-function applyAdminMode(){
-  document.body.classList.toggle("admin-mode", isAdmin());
-}
-
-function requireAdmin(){
-  if(isAdmin()) return true;
-  alert("Chỉ admin mới được thực hiện thao tác này");
-  return false;
-}
-
-// Protect sensitive functions
-function guardAdminFunction(name){
-  const fn = window[name];
-  if(typeof fn !== "function" || fn.__guarded) return;
-  const guarded = function(){
-    if(!requireAdmin()) return;
-    return fn.apply(this, arguments);
-  };
-  guarded.__guarded = true;
-  window[name] = guarded;
-}
-
-[
-  "openToolModal",
-  "saveTool",
-  "deleteTool",
-  "addUser",
-  "removeUser",
-  "importCsv",
-  "queueEmails",
-  "saveEmailConfig",
-  "saveTemplate",
-  "saveOnlineData",
-  "configureOnlineData",
-  "resetDemo",
-  "exportJson",
-  "exportQueueCsv",
-  "saveSharePointConfig"
-].forEach(guardAdminFunction);
-
-setTimeout(applyAdminMode, 100);
-
-
-// Simple Admin Login Override
+// ===== Admin Login + JSONBin Online + User Realtime Confirm =====
 const SIMPLE_ADMIN_SESSION_KEY = "vib_simple_admin_session_v1";
 const SIMPLE_ADMIN_PASSWORD_KEY = "vib_simple_admin_password_v1";
+const JSONBIN_CONFIG_KEY = "vib_jsonbin_config_v2";
+let autoRefreshTimer = null;
+let autoRefreshEnabled = true;
+let isOnlineLoading = false;
 
 function getSimpleAdminPassword(){
   return localStorage.getItem(SIMPLE_ADMIN_PASSWORD_KEY) || "admin123";
@@ -553,6 +347,328 @@ function setAdminPassword(){
   alert("Đã đổi mật khẩu admin");
 }
 
-setTimeout(applyAdminMode, 100);
+function requireAdmin(){
+  if(isAdmin()) return true;
+  alert("Chỉ admin mới được thực hiện thao tác này");
+  return false;
+}
+
+function guardAdminFunction(name){
+  const fn = window[name];
+  if(typeof fn !== "function" || fn.__guarded) return;
+  const guarded = function(){
+    if(!requireAdmin()) return;
+    return fn.apply(this, arguments);
+  };
+  guarded.__guarded = true;
+  window[name] = guarded;
+}
+
+[
+  "openToolModal","saveTool","deleteTool","addUser","removeUser","importCsv",
+  "queueEmails","saveEmailConfig","saveTemplate","saveOnlineData","configureOnlineData",
+  "resetDemo","exportJson","exportQueueCsv","saveSharePointConfig"
+].forEach(guardAdminFunction);
+
+function getOnlineConfig(){
+  let raw = localStorage.getItem(JSONBIN_CONFIG_KEY);
+  let cfg = raw ? JSON.parse(raw) : {};
+  return {
+    binId: cfg.binId || "",
+    accessKey: cfg.accessKey || ""
+  };
+}
+
+function configureOnlineData(){
+  const current = getOnlineConfig();
+  const binId = prompt("Nhập JSONBin Bin ID", current.binId || "");
+  if(!binId) return;
+  const accessKey = prompt("Nhập JSONBin Access Key", current.accessKey || "");
+  if(!accessKey) return;
+
+  localStorage.setItem(JSONBIN_CONFIG_KEY, JSON.stringify({
+    binId: binId.trim(),
+    accessKey: accessKey.trim()
+  }));
+
+  if(typeof toast === "function") toast("Online config saved");
+  startAutoRefresh();
+}
+
+function getUrlConfig(){
+  const p = new URLSearchParams(location.search);
+  return {
+    binId: p.get("b") || "",
+    accessKey: p.get("k") || ""
+  };
+}
+
+function jsonBinConfig(allowUrl){
+  const urlCfg = allowUrl ? getUrlConfig() : {binId:"", accessKey:""};
+  const localCfg = getOnlineConfig();
+  const binId = urlCfg.binId || localCfg.binId;
+  const accessKey = urlCfg.accessKey || localCfg.accessKey;
+
+  if(!binId || !accessKey){
+    return null;
+  }
+
+  return {
+    url: "https://api.jsonbin.io/v3/b/" + binId,
+    binId,
+    accessKey
+  };
+}
+
+function jsonBinConfigOrPrompt(){
+  let cfg = jsonBinConfig(false);
+  if(!cfg){
+    configureOnlineData();
+    cfg = jsonBinConfig(false);
+  }
+  if(!cfg) throw new Error("Missing JSONBin config");
+  return cfg;
+}
+
+async function fetchOnlineRecord(allowUrl){
+  const cfg = allowUrl ? jsonBinConfig(true) : jsonBinConfigOrPrompt();
+  if(!cfg) throw new Error("Missing JSONBin config");
+
+  const res = await fetch(cfg.url + "/latest", {
+    method: "GET",
+    headers: {"X-Access-Key": cfg.accessKey}
+  });
+
+  if(!res.ok) throw new Error(await res.text());
+  const json = await res.json();
+  return json.record || {};
+}
+
+async function putOnlineRecord(record, allowUrl){
+  const cfg = allowUrl ? jsonBinConfig(true) : jsonBinConfigOrPrompt();
+  if(!cfg) throw new Error("Missing JSONBin config");
+
+  const res = await fetch(cfg.url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Access-Key": cfg.accessKey
+    },
+    body: JSON.stringify(record)
+  });
+
+  if(!res.ok) throw new Error(await res.text());
+}
+
+function currentOnlinePayload(){
+  return {
+    tools: state.tools || [],
+    emailConfig: state.emailConfig || {},
+    emailLogs: emailLogs || [],
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function applyOnlinePayload(record){
+  state = {
+    tools: record.tools || [],
+    emailConfig: record.emailConfig || {}
+  };
+  emailLogs = record.emailLogs || record.logs || [];
+  localStorage.setItem(LOG_KEY, JSON.stringify(emailLogs));
+  saveState();
+  if(typeof renderAll === "function") renderAll();
+  applyAdminMode();
+}
+
+async function loadOnlineData(silent){
+  if(isOnlineLoading) return;
+  try{
+    isOnlineLoading = true;
+    const record = await fetchOnlineRecord(false);
+    applyOnlinePayload(record);
+    if(!silent && typeof toast === "function") toast("Loaded online data");
+  }catch(e){
+    console.error(e);
+    if(!silent){
+      if(typeof toast === "function") toast("Load online failed");
+      alert("Load Online lỗi: " + (e.message || e));
+    }
+  }finally{
+    isOnlineLoading = false;
+  }
+}
+
+async function saveOnlineData(){
+  try{
+    await putOnlineRecord(currentOnlinePayload(), false);
+    saveState();
+    if(typeof toast === "function") toast("Saved online data");
+  }catch(e){
+    console.error(e);
+    if(typeof toast === "function") toast("Save online failed");
+    alert("Save Online lỗi: " + (e.message || e));
+  }
+}
+
+function isEditingNow(){
+  return !!document.querySelector(".modal.show");
+}
+
+function startAutoRefresh(){
+  if(autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(function(){
+    if(!autoRefreshEnabled) return;
+    if(isEditingNow()) return;
+    if(new URLSearchParams(location.search).get("action")) return;
+    if(!jsonBinConfig(false)) return;
+    loadOnlineData(true);
+  }, 10000);
+}
+
+function pageBaseUrl(){
+  return location.href.split("?")[0].split("#")[0];
+}
+
+function buildUserActionLink(action, user, tool){
+  const cfg = getOnlineConfig();
+  const p = new URLSearchParams({
+    action: action,
+    email: user.email || "",
+    name: user.name || "",
+    tool: tool.name || "",
+    vendor: tool.vendor || "",
+    renewal: tool.renewal || "",
+    b: cfg.binId || "",
+    k: cfg.accessKey || ""
+  });
+  return pageBaseUrl() + "?" + p.toString();
+}
+
+function confirmButtonsHtml(user, tool){
+  const confirmUrl = buildUserActionLink("confirm", user, tool);
+  const declineUrl = buildUserActionLink("decline", user, tool);
+
+  return `
+<br><br>
+<div style="margin-top:18px">
+  <a href="${confirmUrl}" style="background:#16a34a;color:#fff;padding:10px 14px;text-decoration:none;border-radius:6px;font-weight:bold">CONFIRM</a>
+  &nbsp;&nbsp;
+  <a href="${declineUrl}" style="background:#dc2626;color:#fff;padding:10px 14px;text-decoration:none;border-radius:6px;font-weight:bold">DECLINE</a>
+</div>
+<br>
+Confirm link: ${confirmUrl}
+<br>
+Decline link: ${declineUrl}
+`;
+}
+
+function ensureConfirmButtonsInTemplate(){
+  const body = document.getElementById("emailBody");
+  if(body && !body.value.includes("{{confirm_buttons}}")){
+    body.value = body.value + "\n\n{{confirm_buttons}}";
+  }
+}
+
+const originalApplyTemplateForOnline = typeof applyTemplate === "function" ? applyTemplate : null;
+if(originalApplyTemplateForOnline){
+  applyTemplate = function(text, user, tool){
+    let out = originalApplyTemplateForOnline(text, user, tool);
+    if(String(out || "").indexOf("{{confirm_buttons}}") > -1){
+      out = out.split("{{confirm_buttons}}").join(confirmButtonsHtml(user || {}, tool || {}));
+    }
+    return out;
+  };
+}
+
+async function handleUserAction(){
+  const p = new URLSearchParams(location.search);
+  const action = p.get("action");
+  const email = p.get("email");
+  const toolName = p.get("tool");
+
+  if(!action || !email || !toolName) return false;
+
+  const status = action === "confirm" ? "Confirmed" : action === "decline" ? "Declined" : "Pending";
+
+  document.body.innerHTML = `
+    <div style="font-family:Segoe UI,Arial;padding:40px;max-width:760px;margin:auto">
+      <h2 style="color:#0b5cab">Đang ghi nhận phản hồi...</h2>
+      <p>Vui lòng chờ trong giây lát.</p>
+    </div>
+  `;
+
+  try{
+    const record = await fetchOnlineRecord(true);
+    const tools = record.tools || [];
+    let found = false;
+
+    tools.forEach(function(t){
+      if(String(t.name || "").toLowerCase() === String(toolName || "").toLowerCase()){
+        (t.users || []).forEach(function(u){
+          if(String(u.email || "").toLowerCase() === String(email || "").toLowerCase()){
+            u.renewalStatus = status;
+            u.replyDate = new Date().toISOString();
+            found = true;
+          }
+        });
+      }
+    });
+
+    const emailLogsNew = record.emailLogs || record.logs || [];
+    emailLogsNew.unshift({
+      time: new Date().toLocaleString(),
+      type: "User Confirmation",
+      count: 1,
+      provider: "GitHub Pages + JSONBin",
+      sender: email,
+      status: status,
+      tool: toolName
+    });
+
+    const newRecord = {
+      tools: tools,
+      emailConfig: record.emailConfig || {},
+      emailLogs: emailLogsNew.slice(0, 100),
+      updatedAt: new Date().toISOString()
+    };
+
+    await putOnlineRecord(newRecord, true);
+
+    document.body.innerHTML = `
+      <div style="font-family:Segoe UI,Arial;padding:40px;max-width:760px;margin:auto">
+        <h2 style="color:#0b5cab">Đã ghi nhận phản hồi</h2>
+        <p>Status: <b>${status}</b></p>
+        <p>User: ${email}</p>
+        <p>Tool: ${toolName}</p>
+        ${found ? "<p>Bạn có thể đóng tab này.</p>" : "<p style='color:#92400e'>Đã lưu log, nhưng không tìm thấy user/tool trùng khớp trong data.</p>"}
+      </div>
+    `;
+  }catch(e){
+    console.error(e);
+    document.body.innerHTML = `
+      <div style="font-family:Segoe UI,Arial;padding:40px;max-width:760px;margin:auto">
+        <h2 style="color:#dc2626">Không ghi nhận được phản hồi</h2>
+        <p>${String(e.message || e)}</p>
+        <p>Vui lòng báo admin kiểm tra link xác nhận.</p>
+      </div>
+    `;
+  }
+
+  return true;
+}
+
+setTimeout(function(){
+  applyAdminMode();
+  ensureConfirmButtonsInTemplate();
+  handleUserAction().then(function(isAction){
+    if(!isAction){
+      startAutoRefresh();
+      if(jsonBinConfig(false)){
+        loadOnlineData(true);
+      }
+    }
+  });
+}, 200);
 
 </script></body></html>
