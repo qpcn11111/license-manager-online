@@ -692,134 +692,188 @@ setTimeout(function(){
 }, 200);
 
 
-// AUTO_LOAD_HARDCODED_JSONBIN
-setTimeout(function(){
-  try{
-    const cfg = typeof getOnlineConfig === "function" ? getOnlineConfig() : null;
-    if(cfg && cfg.binId && cfg.accessKey && typeof loadOnlineData === "function"){
-      loadOnlineData(true);
-    }
-  }catch(e){ console.error(e); }
-}, 800);
+// AUTO_LOAD_HARDCODED_JSONBIN disabled.
+// Safe loader below controls when online data can overwrite local data.
 
 
 
 
 
-// ===== Stable Auto Save Online after local changes =====
-// Fix: khi vừa thêm/sửa/xóa, không cho auto-refresh load dữ liệu cũ đè lên thay đổi local.
-let autoSaveOnlineTimer = null;
-let autoSaveOnlineBusy = false;
-let localDirtyUntil = 0;
-let applyingOnlinePayload = false;
 
-function markLocalDirty(){
-  localDirtyUntil = Date.now() + 5000;
+
+// ===== Direct JSONBin Save Controller - No Disappearing Tools =====
+let directSaveBusy = false;
+let directLoadBlockedUntil = 0;
+
+function blockOnlineLoad(ms){
+  directLoadBlockedUntil = Date.now() + (ms || 8000);
   if(typeof autoRefreshEnabled !== "undefined") autoRefreshEnabled = false;
 }
 
-function clearLocalDirtySoon(){
-  localDirtyUntil = Date.now() + 1200;
+function unblockOnlineLoadSoon(){
+  directLoadBlockedUntil = Date.now() + 1500;
   setTimeout(function(){
-    if(Date.now() >= localDirtyUntil && typeof autoRefreshEnabled !== "undefined"){
+    if(Date.now() >= directLoadBlockedUntil && typeof autoRefreshEnabled !== "undefined"){
       autoRefreshEnabled = true;
     }
-  }, 1300);
+  }, 1600);
 }
 
-async function autoSaveOnlineData(reason){
+async function directPushOnline(reason){
+  if(directSaveBusy) return;
+  if(typeof jsonBinConfig !== "function" || !jsonBinConfig(false)){
+    if(typeof toast === "function") toast("Local saved - missing JSONBin config");
+    return;
+  }
+
+  directSaveBusy = true;
+  blockOnlineLoad(12000);
+
   try{
-    if(typeof isAdmin === "function" && !isAdmin()) return;
-    if(typeof jsonBinConfig !== "function" || !jsonBinConfig(false)) return;
-    if(typeof isOnlineLoading !== "undefined" && isOnlineLoading) return;
-    if(autoSaveOnlineBusy) return;
-
-    autoSaveOnlineBusy = true;
-    markLocalDirty();
-
     await putOnlineRecord(currentOnlinePayload(), false);
-
-    clearLocalDirtySoon();
-    if(typeof toast === "function") toast("Auto saved online");
+    if(typeof toast === "function") toast("Saved online");
   }catch(e){
     console.error(e);
-    clearLocalDirtySoon();
-    if(typeof toast === "function") toast("Auto save online failed");
+    alert("Đã lưu trên máy này nhưng chưa lưu online: " + (e.message || e));
   }finally{
-    autoSaveOnlineBusy = false;
+    directSaveBusy = false;
+    unblockOnlineLoadSoon();
   }
 }
 
-function scheduleAutoSaveOnline(reason){
-  if(applyingOnlinePayload) return;
-  markLocalDirty();
-
-  if(autoSaveOnlineTimer) clearTimeout(autoSaveOnlineTimer);
-  autoSaveOnlineTimer = setTimeout(function(){
-    autoSaveOnlineData(reason);
-  }, 500);
-}
-
-// Wrap saveState: mọi thay đổi local như thêm/sửa/xóa tool, user đều tự save online.
-if(typeof saveState === "function" && !saveState.__stableAutoOnlineWrapped){
-  const originalSaveStateLocalOnly = saveState;
-  saveState = function(){
-    originalSaveStateLocalOnly.apply(this, arguments);
-    scheduleAutoSaveOnline("saveState");
-  };
-  saveState.__stableAutoOnlineWrapped = true;
-}
-
-// Wrap applyOnlinePayload để load online không tự kích hoạt auto-save ngược lại.
-if(typeof applyOnlinePayload === "function" && !applyOnlinePayload.__stableAutoOnlineWrapped){
-  const originalApplyOnlinePayload = applyOnlinePayload;
-  applyOnlinePayload = function(record){
-    applyingOnlinePayload = true;
-    try{
-      return originalApplyOnlinePayload.apply(this, arguments);
-    }finally{
-      applyingOnlinePayload = false;
-    }
-  };
-  applyOnlinePayload.__stableAutoOnlineWrapped = true;
-}
-
-// Wrap loadOnlineData: nếu vừa chỉnh local, không load online đè mất dữ liệu mới.
-if(typeof loadOnlineData === "function" && !loadOnlineData.__stableAutoOnlineWrapped){
-  const originalLoadOnlineData = loadOnlineData;
+if(typeof loadOnlineData === "function" && !loadOnlineData.__directControllerWrapped){
+  const originalLoadOnlineDataDirect = loadOnlineData;
   loadOnlineData = async function(silent){
-    if(Date.now() < localDirtyUntil || autoSaveOnlineBusy){
-      if(!silent && typeof toast === "function") toast("Đang lưu thay đổi, chưa load online");
+    if(directSaveBusy || Date.now() < directLoadBlockedUntil){
+      if(!silent && typeof toast === "function") toast("Đang lưu, chưa load online");
       return;
     }
-    return originalLoadOnlineData.apply(this, arguments);
+    return originalLoadOnlineDataDirect.apply(this, arguments);
   };
-  loadOnlineData.__stableAutoOnlineWrapped = true;
+  loadOnlineData.__directControllerWrapped = true;
 }
 
-// Queue email cập nhật emailLogs riêng nên cũng cần autosave.
-if(typeof queueEmails === "function" && !queueEmails.__stableAutoOnlineWrapped){
-  const originalQueueEmails = queueEmails;
-  queueEmails = function(){
-    markLocalDirty();
-    const result = originalQueueEmails.apply(this, arguments);
-    scheduleAutoSaveOnline("queueEmails");
+saveTool = async function(){
+  if(typeof requireAdmin === "function" && !requireAdmin()) return;
+
+  blockOnlineLoad(12000);
+
+  const autoType = editingToolIndex == null
+    ? defaultToolType
+    : (state.tools[editingToolIndex]?.type || "Other");
+
+  const payload = {
+    code: editingToolIndex == null
+      ? ("TOOL-" + Date.now())
+      : (state.tools[editingToolIndex]?.code || ("TOOL-" + Date.now())),
+    name: document.getElementById("toolName").value.trim(),
+    vendor: document.getElementById("toolVendor").value.trim(),
+    type: autoType,
+    billingCycle: document.getElementById("toolCycle").value,
+    seats: Number(document.getElementById("toolSeats").value || 0),
+    cost: Number(document.getElementById("toolCost").value || 0),
+    renewal: document.getElementById("toolRenewal").value,
+    notes: document.getElementById("toolNotes").value.trim(),
+    users: editingToolIndex == null ? [] : (state.tools[editingToolIndex].users || [])
+  };
+
+  if(!payload.name){
+    toast("Name là bắt buộc");
+    unblockOnlineLoadSoon();
+    return;
+  }
+
+  if(editingToolIndex == null) state.tools.push(payload);
+  else state.tools[editingToolIndex] = payload;
+
+  saveState();
+  closeToolModal();
+  renderAll();
+
+  await directPushOnline("saveTool");
+};
+
+deleteTool = async function(i){
+  if(typeof requireAdmin === "function" && !requireAdmin()) return;
+  if(!confirm("Delete tool?")) return;
+
+  blockOnlineLoad(12000);
+  state.tools.splice(i, 1);
+  saveState();
+  renderAll();
+
+  await directPushOnline("deleteTool");
+};
+
+addUser = async function(){
+  if(typeof requireAdmin === "function" && !requireAdmin()) return;
+
+  const t = state.tools[currentUserToolIndex];
+  const name = document.getElementById("userName").value.trim();
+  const email = document.getElementById("userEmail").value.trim();
+
+  if(!name || !email){
+    toast("Name và Email là bắt buộc");
+    return;
+  }
+
+  blockOnlineLoad(12000);
+  t.users = t.users || [];
+  t.users.push({
+    name,
+    email,
+    dept: document.getElementById("userDept").value.trim(),
+    role: document.getElementById("userRole").value.trim(),
+    date: document.getElementById("userDate").value,
+    status: document.getElementById("userStatus").value,
+    renewalStatus: "Pending",
+    lastEmailSent: ""
+  });
+
+  ["userName","userEmail","userDept","userRole"].forEach(id => document.getElementById(id).value = "");
+
+  saveState();
+  renderAll();
+  renderUsersTable();
+
+  await directPushOnline("addUser");
+};
+
+removeUser = async function(i){
+  if(typeof requireAdmin === "function" && !requireAdmin()) return;
+  if(!confirm("Remove user?")) return;
+
+  blockOnlineLoad(12000);
+  state.tools[currentUserToolIndex].users.splice(i, 1);
+  saveState();
+  renderAll();
+  renderUsersTable();
+
+  await directPushOnline("removeUser");
+};
+
+if(typeof queueEmails === "function" && !queueEmails.__directPushWrapped){
+  const originalQueueEmailsDirect = queueEmails;
+  queueEmails = async function(){
+    if(typeof requireAdmin === "function" && !requireAdmin()) return;
+    blockOnlineLoad(12000);
+    const result = originalQueueEmailsDirect.apply(this, arguments);
+    await directPushOnline("queueEmails");
     return result;
   };
-  queueEmails.__stableAutoOnlineWrapped = true;
+  queueEmails.__directPushWrapped = true;
 }
 
-// Save Online thủ công thì cũng giải phóng dirty lock sau khi lưu.
-if(typeof saveOnlineData === "function" && !saveOnlineData.__stableAutoOnlineWrapped){
-  const originalSaveOnlineData = saveOnlineData;
-  saveOnlineData = async function(){
-    markLocalDirty();
-    const result = await originalSaveOnlineData.apply(this, arguments);
-    clearLocalDirtySoon();
-    return result;
-  };
-  saveOnlineData.__stableAutoOnlineWrapped = true;
-}
+setTimeout(function(){
+  try{
+    if(typeof jsonBinConfig === "function" && jsonBinConfig(false)){
+      loadOnlineData(true);
+    }
+    if(typeof startAutoRefresh === "function"){
+      startAutoRefresh();
+    }
+  }catch(e){ console.error(e); }
+}, 1800);
 
 
 </script></body></html>
