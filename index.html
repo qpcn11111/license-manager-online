@@ -949,127 +949,242 @@ if(typeof saveOnlineData === "function" && !saveOnlineData.__stableAutoOnlineWra
 
 </script>
 <script>
-// ===== SIMPLE MAIL PATCH =====
+// ===== OUTLOOK BCC MAIL + CONFIRM FORM WITH SUCCESS PAGE =====
 (function(){
 
-const PUBLIC_URL = "https://qpcn11111.github.io/license-manager-online/";
+  const PUBLIC_URL = "https://qpcn11111.github.io/license-manager-online/";
+  const OUTLOOK_TO = "quang.phamvan@vib.com.vn";
 
-function makeMail(tool){
-  const name = (tool && tool.name) || "";
-  const vendor = (tool && tool.vendor) || "";
-  const renewal = (tool && tool.renewal) || "";
-
-  const confirmUrl = PUBLIC_URL + "?action=confirm&tool=" + encodeURIComponent(name);
-  const declineUrl = PUBLIC_URL + "?action=decline&tool=" + encodeURIComponent(name);
-
-  return {
-    subject: "[VIB] License Confirmation - " + name,
-    body: [
-      "Dear User,",
-      "",
-      "Please confirm your continued usage of " + name + ".",
-      "",
-      "License Information:",
-      "- Software: " + name,
-      "- Vendor: " + vendor,
-      "- Renewal Date: " + renewal,
-      "",
-      "CONFIRM:",
-      confirmUrl,
-      "",
-      "DECLINE:",
-      declineUrl,
-      "",
-      "Regards,",
-      "IT Software Asset Management"
-    ].join("\n")
-  };
-}
-
-window.queueEmails = function(fromModal=false){
-  let recipients = [];
-
-  if(typeof reviewRecipients === "function"){
-    recipients = reviewRecipients();
-  }else if(typeof emailRecipients === "function"){
-    recipients = emailRecipients();
+  function text(v){
+    return String(v == null ? "" : v);
   }
 
-  if(!recipients || !recipients.length){
-    alert("No recipients found.");
-    return;
+  function buildConfirmUrl(action, tool){
+    return PUBLIC_URL + "?action=" + encodeURIComponent(action) + "&tool=" + encodeURIComponent(text(tool && tool.name));
   }
 
-  const tool = recipients[0].tool || {};
-  const mail = makeMail(tool);
+  function buildMail(tool){
+    const name = text(tool && tool.name);
+    const vendor = text(tool && tool.vendor);
+    const renewal = text(tool && tool.renewal);
 
-  const bcc = recipients
-    .map(x => x.user && x.user.email ? x.user.email : "")
-    .filter(Boolean)
-    .join(";");
+    return {
+      subject: "[VIB] License Confirmation - " + name,
+      body: [
+        "Dear User,",
+        "",
+        "Please confirm your continued usage of " + name + ".",
+        "",
+        "License Information:",
+        "- Software: " + name,
+        "- Vendor: " + vendor,
+        "- Renewal Date: " + renewal,
+        "",
+        "If you no longer need this license, please decline so IT can reclaim it.",
+        "",
+        "Please choose one option:",
+        "",
+        "CONFIRM:",
+        buildConfirmUrl("confirm", tool),
+        "",
+        "DECLINE:",
+        buildConfirmUrl("decline", tool),
+        "",
+        "Regards,",
+        "IT Software Asset Management"
+      ].join("\n")
+    };
+  }
 
-  const url =
-    "mailto:quang.phamvan@vib.com.vn" +
-    "?bcc=" + encodeURIComponent(bcc) +
-    "&subject=" + encodeURIComponent(mail.subject) +
-    "&body=" + encodeURIComponent(mail.body);
+  function getReviewRecipients(){
+    if(typeof currentReviewToolScope !== "undefined" && currentReviewToolScope !== null && window.state && state.tools && state.tools[currentReviewToolScope]){
+      const tool = state.tools[currentReviewToolScope];
+      return (tool.users || []).map(function(u, ui){
+        return { tool: tool, toolIndex: currentReviewToolScope, user: u, userIndex: ui };
+      });
+    }
 
-  window.location.href = url;
+    if(typeof reviewRecipients === "function"){
+      try{
+        const r = reviewRecipients();
+        if(r && r.length) return r;
+      }catch(e){}
+    }
 
-  alert("Opened Outlook draft for " + recipients.length + " recipient(s).");
-};
+    if(typeof emailRecipients === "function"){
+      try{
+        return emailRecipients() || [];
+      }catch(e){}
+    }
 
-window.handleUserAction = async function(){
-  const p = new URLSearchParams(location.search);
-  const action = p.get("action");
-  const tool = p.get("tool");
+    return [];
+  }
 
-  if(!action || !tool) return false;
+  window.queueEmails = function(fromModal){
+    const recipients = getReviewRecipients();
 
-  const status = action === "confirm" ? "Confirmed" : "Declined";
-
-  document.body.innerHTML = `
-    <div style="max-width:700px;margin:40px auto;font-family:Segoe UI,Arial;padding:20px">
-      <h2>License Confirmation</h2>
-      <p><b>Software:</b> ${tool}</p>
-      <p><b>Response:</b> ${status}</p>
-
-      <p>Please enter your VIB email:</p>
-
-      <input id="mailInput"
-        type="email"
-        placeholder="your.name@vib.com.vn"
-        style="width:100%;padding:12px;border:1px solid #ccc;border-radius:8px">
-
-      <button id="submitBtn"
-        style="margin-top:12px;padding:10px 16px;background:#0b5cab;color:#fff;border:0;border-radius:8px;cursor:pointer">
-        Submit
-      </button>
-
-      <div id="msg" style="margin-top:12px"></div>
-    </div>
-  `;
-
-  document.getElementById("submitBtn").onclick = async function(){
-    const email = (document.getElementById("mailInput").value || "").trim().toLowerCase();
-    const msg = document.getElementById("msg");
-
-    if(!email){
-      msg.innerHTML = "Please enter email.";
+    if(!recipients.length){
+      alert("No recipients found.");
       return;
     }
+
+    const tool = recipients[0].tool || {};
+    const mail = buildMail(tool);
+    const bcc = recipients
+      .map(function(x){ return x && x.user ? x.user.email : ""; })
+      .filter(Boolean)
+      .join(";");
+
+    const url =
+      "mailto:" + encodeURIComponent(OUTLOOK_TO) +
+      "?bcc=" + encodeURIComponent(bcc) +
+      "&subject=" + encodeURIComponent(mail.subject) +
+      "&body=" + encodeURIComponent(mail.body);
+
+    window.location.href = url;
+
+    const sentTime = new Date().toLocaleString();
+
+    recipients.forEach(function(r){
+      if(r.user){
+        r.user.lastEmailSent = sentTime;
+        r.user.emailSendStatus = "Outlook Draft";
+      }
+    });
+
+    if(typeof emailLogs !== "undefined"){
+      emailLogs.unshift({
+        time: sentTime,
+        type: "License Confirmation",
+        count: recipients.length,
+        sender: OUTLOOK_TO,
+        status: "Outlook Draft"
+      });
+      emailLogs = emailLogs.slice(0, 50);
+      try{ localStorage.setItem(LOG_KEY, JSON.stringify(emailLogs)); }catch(e){}
+    }
+
+    if(typeof saveState === "function") saveState();
+    if(typeof renderEmailLog === "function") renderEmailLog();
+    if(typeof renderEmail === "function") renderEmail();
+    if(typeof renderModalSendList === "function") renderModalSendList();
+
+    if(fromModal && typeof closeEmailModal === "function") closeEmailModal();
+
+    alert("Opened Outlook draft for " + recipients.length + " recipient(s).");
+  };
+
+  window.openEmailReview = (function(original){
+    return function(toolIndex, userIndex){
+      if(typeof original === "function"){
+        original.apply(this, arguments);
+      }
+
+      setTimeout(function(){
+        let tool = null;
+
+        if(toolIndex != null && window.state && state.tools && state.tools[toolIndex]){
+          tool = state.tools[toolIndex];
+        }else{
+          const recipients = getReviewRecipients();
+          if(recipients.length) tool = recipients[0].tool;
+        }
+
+        if(!tool) return;
+
+        const mail = buildMail(tool);
+
+        const subjectEl = document.getElementById("modalSubject");
+        const bodyEl = document.getElementById("modalBody");
+        const emailSubject = document.getElementById("emailSubject");
+        const emailBody = document.getElementById("emailBody");
+        const recipientEl = document.getElementById("modalRecipient");
+
+        if(subjectEl) subjectEl.textContent = mail.subject;
+        if(bodyEl) bodyEl.innerHTML = mail.body.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");
+        if(emailSubject) emailSubject.value = mail.subject;
+        if(emailBody) emailBody.value = mail.body;
+        if(recipientEl) recipientEl.textContent = "BCC recipients";
+      }, 50);
+    };
+  })(window.openEmailReview);
+
+  function renderActionPage(){
+    const params = new URLSearchParams(location.search);
+    const action = params.get("action");
+    const tool = params.get("tool");
+
+    if(!action || !tool) return false;
+
+    const status = action === "confirm" ? "Confirmed" : "Declined";
+
+    document.body.innerHTML = [
+      '<div style="max-width:720px;margin:40px auto;background:#fff;padding:32px;border-radius:16px;font-family:Segoe UI,Arial;box-shadow:0 12px 28px rgba(15,23,42,.08)">',
+      '<h2 style="margin-top:0;color:#0b5cab">License Confirmation</h2>',
+      '<p><b>Software:</b> ' + escapeHtml(tool) + '</p>',
+      '<p><b>Response:</b> ' + escapeHtml(status) + '</p>',
+      '<p>Please enter your VIB email to record your response.</p>',
+      '<input id="confirmEmailInput" type="email" placeholder="your.name@vib.com.vn" style="width:100%;padding:12px;border:1px solid #d0d5dd;border-radius:10px;font-size:15px;box-sizing:border-box">',
+      '<button id="confirmSubmitBtn" style="margin-top:14px;background:#0b5cab;color:#fff;border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer">Submit</button>',
+      '<div id="confirmMsg" style="margin-top:14px;color:#667085"></div>',
+      '</div>'
+    ].join("");
+
+    setTimeout(function(){
+      const btn = document.getElementById("confirmSubmitBtn");
+      if(btn) btn.onclick = function(){ submitResponse(action, tool, status); };
+
+      const input = document.getElementById("confirmEmailInput");
+      if(input){
+        input.addEventListener("keydown", function(e){
+          if(e.key === "Enter") submitResponse(action, tool, status);
+        });
+      }
+    }, 50);
+
+    return true;
+  }
+
+  function escapeHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(m){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m];
+    });
+  }
+
+  async function submitResponse(action, toolName, status){
+    const input = document.getElementById("confirmEmailInput");
+    const msg = document.getElementById("confirmMsg");
+    const email = (input && input.value ? input.value : "").trim().toLowerCase();
+
+    if(!email || email.indexOf("@") === -1){
+      msg.style.color = "#dc2626";
+      msg.textContent = "Please enter a valid email.";
+      return;
+    }
+
+    msg.style.color = "#667085";
+    msg.textContent = "Recording your response...";
 
     try{
       const record = await fetchOnlineRecord(true);
       const tools = record.tools || [];
-
       let found = false;
+      let displayName = "";
+      let already = false;
+      let oldStatus = "";
 
       tools.forEach(function(t){
-        if((t.name || "").toLowerCase() === tool.toLowerCase()){
+        if(String(t.name || "").toLowerCase() === String(toolName || "").toLowerCase()){
           (t.users || []).forEach(function(u){
-            if((u.email || "").toLowerCase() === email){
-              u.renewalStatus = status;
+            if(String(u.email || "").toLowerCase() === email){
+              displayName = u.name || "";
+              oldStatus = u.renewalStatus || "";
+              if(u.replyDate && oldStatus && oldStatus !== "Pending"){
+                already = true;
+              }else{
+                u.renewalStatus = status;
+                u.replyDate = new Date().toISOString();
+              }
               found = true;
             }
           });
@@ -1077,37 +1192,53 @@ window.handleUserAction = async function(){
       });
 
       if(!found){
-        msg.innerHTML = "Email not found for this software.";
+        msg.style.color = "#dc2626";
+        msg.textContent = "Email not found for this software.";
         return;
       }
 
-      await putOnlineRecord({
-        tools: tools,
-        emailConfig: record.emailConfig || {},
-        emailLogs: record.emailLogs || [],
-        updatedAt: new Date().toISOString()
-      }, true);
+      if(!already){
+        const logs = record.emailLogs || record.logs || [];
+        logs.unshift({
+          time: new Date().toLocaleString(),
+          type: "User Confirmation",
+          count: 1,
+          sender: email,
+          status: status,
+          tool: toolName
+        });
 
-      msg.innerHTML = "Response recorded successfully.";
+        await putOnlineRecord({
+          tools: tools,
+          emailConfig: record.emailConfig || {},
+          emailLogs: logs.slice(0, 100),
+          updatedAt: new Date().toISOString()
+        }, true);
+      }
+
+      history.replaceState({}, "", PUBLIC_URL + "?result=success");
+
+      document.body.innerHTML = [
+        '<div style="max-width:720px;margin:40px auto;background:#fff;padding:32px;border-radius:16px;font-family:Segoe UI,Arial;box-shadow:0 12px 28px rgba(15,23,42,.08)">',
+        '<h2 style="margin-top:0;color:#0b5cab">Response Recorded Successfully</h2>',
+        '<p><b>Status:</b> ' + escapeHtml(already ? oldStatus : status) + '</p>',
+        '<p><b>User:</b> ' + escapeHtml(displayName || email) + '</p>',
+        '<p><b>Email:</b> ' + escapeHtml(email) + '</p>',
+        '<p><b>Software:</b> ' + escapeHtml(toolName) + '</p>',
+        already ? '<p style="color:#92400e">You already responded before. No duplicate update was made.</p>' : '<p>You can close this tab.</p>',
+        '</div>'
+      ].join("");
+
     }catch(e){
       console.error(e);
-      msg.innerHTML = "Update failed.";
+      msg.style.color = "#dc2626";
+      msg.textContent = "Update failed: " + String(e.message || e);
     }
-  };
-
-  return true;
-};
-
-setTimeout(function(){
-  try{
-    const p = new URLSearchParams(location.search);
-    if(p.get("action")){
-      window.handleUserAction();
-    }
-  }catch(e){
-    console.error(e);
   }
-}, 300);
+
+  window.addEventListener("load", function(){
+    renderActionPage();
+  });
 
 })();
 </script>
